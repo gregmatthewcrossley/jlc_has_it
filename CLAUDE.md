@@ -111,6 +111,34 @@ my_project/
    - If KiCad is open: user must manually refresh libraries or reopen project
    - If KiCad is closed: parts available on next open
 
+## Git Workflow
+
+**Note**: This project uses different git conventions than the global CLAUDE.md (which is Rails-specific).
+
+### Commit Authorship
+
+- When Claude makes commits autonomously, use `--author="Claude Code <noreply@anthropic.com>"`
+- This provides clear attribution in git history
+- Human-made commits use the user's normal git identity
+- For collaborative work, use Co-Authored-By trailer
+
+### Commit Messages
+
+Use standard format:
+```
+Short summary (50 chars or less)
+
+- Specific change 1
+- Specific change 2
+- Reasoning if needed
+```
+
+### When to Commit
+
+- After completing each task (or logical checkpoint within a task)
+- When explicitly requested by user
+- Before major refactoring or risky changes
+
 ## Task Management
 
 This project uses a structured task system in the `tasks/` directory:
