@@ -1,0 +1,21 @@
+id: 02-004
+phase: 2
+title: Implement KiCad symbol file writer
+description: |
+  Extend symbol classes to write symbols back to .kicad_sym files.
+  Enable adding new symbols to existing library files.
+dependencies:
+  - 02-003
+acceptance_criteria:
+  - SymbolLibrary.add_symbol() method implemented
+  - SymbolLibrary.write() method saves to .kicad_sym file
+  - Generated files are valid (can be opened in KiCad 9.0)
+  - Preserves existing symbols when adding new ones
+  - Tests verify round-trip (read → modify → write → read)
+  - Validates symbol data before writing
+estimated_complexity: medium
+status: pending
+notes: |
+  Must generate valid S-expressions.
+  Test by opening generated files in real KiCad.
+  Handle file locking/backup before modifying.

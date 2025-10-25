@@ -1,0 +1,22 @@
+id: 05-005
+phase: 5
+title: Implement configuration management
+description: |
+  Create config file support for default project paths, API keys,
+  preferences. Implement 'config' command to manage settings.
+dependencies:
+  - 05-001
+acceptance_criteria:
+  - Config file location established (~/.config/jlc-has-it/config.yaml)
+  - Default project path configurable
+  - Preferred library sources configurable
+  - `jlc-has-it config set key value` works
+  - `jlc-has-it config get key` works
+  - `jlc-has-it config list` shows all settings
+  - Config loads automatically on CLI startup
+estimated_complexity: low
+status: pending
+notes: |
+  Use YAML or TOML for config format.
+  XDG Base Directory spec for Linux, proper paths for macOS/Windows.
+  Don't store secrets in plain text.

@@ -1,0 +1,20 @@
+id: 02-005
+phase: 2
+title: Implement footprint file handler
+description: |
+  Create classes to read and write .kicad_mod footprint files.
+dependencies:
+  - 02-002
+acceptance_criteria:
+  - Footprint class created in jlc_has_it/kicad/footprint.py
+  - Can read .kicad_mod files
+  - Can write .kicad_mod files
+  - Handles pads, graphics, and 3D model references
+  - Generated files valid in KiCad 9.0
+  - Tests with real footprint files
+estimated_complexity: medium
+status: pending
+notes: |
+  Footprints are individual files, not libraries.
+  Must handle 3D model path references correctly.
+  Similar structure to symbols but different content.

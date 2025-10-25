@@ -1,0 +1,24 @@
+id: 06-002
+phase: 6
+title: Implement pattern-based query parser
+description: |
+  Create regex-based parser to extract component specs from queries.
+  This is the fast, free fallback option.
+dependencies:
+  - 06-001
+acceptance_criteria:
+  - QueryParser class created in jlc_has_it/core/nlp.py
+  - Extracts component type (resistor, capacitor, IC, etc)
+  - Extracts values with units (uF, nF, Ohm, kOhm)
+  - Extracts voltage ratings (V, kV)
+  - Extracts package types (SMD, 0805, SOT-23, etc)
+  - Handles variations in spelling/format
+  - Returns QueryParams object
+  - Has extensive tests with example queries
+estimated_complexity: high
+status: pending
+notes: |
+  Regex patterns for common formats.
+  Unit normalization (convert all to base units).
+  Handle ranges: "10-50V", "1uF to 10uF".
+  Be permissive, extract what you can.

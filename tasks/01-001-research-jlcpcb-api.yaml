@@ -1,0 +1,21 @@
+id: 01-001
+phase: 1
+title: Research JLCPCB API and data sources
+description: |
+  Investigate how to access JLCPCB component data. Document findings about
+  available APIs, web scraping requirements, data formats, and rate limits.
+dependencies:
+  - 00-001
+acceptance_criteria:
+  - Document created (docs/jlcpcb-integration.md) with findings
+  - API endpoints documented (if available)
+  - Alternative scraping approach documented (if needed)
+  - Sample response data captured and saved
+  - Authentication requirements documented
+  - Rate limits and usage policies documented
+estimated_complexity: medium
+status: pending
+notes: |
+  Check if JLCPCB has public API, otherwise may need web scraping.
+  Look for existing Python libraries that do this.
+  JLCPCB parts library: https://jlcpcb.com/parts

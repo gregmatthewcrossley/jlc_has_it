@@ -1,0 +1,22 @@
+id: 03-003
+phase: 3
+title: Implement component ranking algorithm
+description: |
+  Develop ranking algorithm to sort search results by suitability
+  (basic parts first, in stock, common manufacturers, good pricing).
+dependencies:
+  - 03-001
+acceptance_criteria:
+  - Ranking algorithm implemented in ComponentSearch
+  - Basic parts ranked higher than extended parts
+  - In-stock parts ranked higher than out-of-stock
+  - Common manufacturers ranked higher
+  - Price-per-unit considered
+  - Can explain ranking (score breakdown)
+  - Tests verify ranking logic
+estimated_complexity: medium
+status: pending
+notes: |
+  Use weighted scoring system.
+  Make weights configurable.
+  Consider: basic(+100), stock(+50), manufacturer reputation(+20), price(-cost).

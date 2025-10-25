@@ -1,0 +1,19 @@
+id: 02-003
+phase: 2
+title: Implement KiCad symbol file reader
+description: |
+  Create classes to read and parse .kicad_sym files into Python objects.
+dependencies:
+  - 02-002
+acceptance_criteria:
+  - SymbolLibrary class created in jlc_has_it/kicad/symbol.py
+  - Can read existing .kicad_sym files
+  - Parses symbols into Symbol objects
+  - Extracts properties, pins, graphics
+  - Has tests with real KiCad symbol files
+  - Handles malformed files gracefully
+estimated_complexity: medium
+status: pending
+notes: |
+  Build on top of S-expression parser.
+  Focus on reading first, writing comes next.

@@ -1,0 +1,22 @@
+id: 06-004
+phase: 6
+title: Integrate query parser with search
+description: |
+  Connect query parser to component search so natural language queries
+  work end-to-end in the CLI.
+dependencies:
+  - 06-002
+  - 05-002
+acceptance_criteria:
+  - ComponentSearch.search() accepts natural language queries
+  - Automatically parses query and applies filters
+  - `jlc-has-it search "50V 220uF SMD capacitor"` returns relevant results
+  - Shows what was parsed in output (for transparency)
+  - User can override with explicit flags if parsing is wrong
+  - Integration tests verify end-to-end functionality
+estimated_complexity: low
+status: pending
+notes: |
+  Glue code between parser and search.
+  Show parsed parameters to user: "Searching for: capacitor, 220uF, >=50V, SMD"
+  Allow manual override: --voltage 50 --capacitance 220uF

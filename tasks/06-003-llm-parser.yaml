@@ -1,0 +1,24 @@
+id: 06-003
+phase: 6
+title: Implement LLM-based query parser (optional)
+description: |
+  Create LLM-based parser using Claude API for more complex/ambiguous queries.
+  This is optional enhancement for better accuracy.
+dependencies:
+  - 06-001
+  - 06-002
+acceptance_criteria:
+  - LLMQueryParser class uses Claude API
+  - Falls back to pattern-based parser on API failure
+  - Handles rate limits gracefully
+  - Requires API key in config
+  - Caches recent parsing results to reduce API calls
+  - Tests use mocked API responses
+  - Works without API key (uses pattern parser)
+estimated_complexity: medium
+status: pending
+notes: |
+  Use Claude API with structured outputs.
+  Prompt engineering to extract component specs.
+  Make LLM parsing optional/configurable.
+  Cost consideration: pattern parser should handle 90% of cases.

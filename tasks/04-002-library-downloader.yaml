@@ -1,0 +1,22 @@
+id: 04-002
+phase: 4
+title: Implement library source downloader
+description: |
+  Create abstraction for downloading symbols/footprints/3D models from
+  various sources (Ultralibrarian, SnapEDA, etc).
+dependencies:
+  - 04-001
+acceptance_criteria:
+  - LibrarySource interface/base class created
+  - UltalibrarianSource implementation
+  - SnapEDASource implementation (if feasible)
+  - download_symbol(), download_footprint(), download_model() methods
+  - Returns file paths or content
+  - Handles missing libraries gracefully
+  - Has tests with mocked downloads
+estimated_complexity: high
+status: pending
+notes: |
+  May need to handle different file formats and conversions.
+  Some sources might require web scraping.
+  Consider caching downloaded files.

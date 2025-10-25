@@ -1,0 +1,26 @@
+id: 05-004
+phase: 5
+title: Implement add command
+description: |
+  Create 'add' command that searches, lets user select component, downloads
+  symbol/footprint/model, and adds to KiCad project.
+dependencies:
+  - 05-003
+  - 04-002
+  - 02-006
+acceptance_criteria:
+  - `jlc-has-it add "query"` performs full workflow
+  - Accepts --project flag for KiCad project path (or auto-detects)
+  - Downloads symbol, footprint, 3D model
+  - Adds to project's component library
+  - Updates library tables if needed
+  - Shows progress during download
+  - Confirms successful addition
+  - Has integration test
+estimated_complexity: high
+status: pending
+notes: |
+  This is the main user-facing command.
+  Use rich.progress for download progress.
+  Handle case where library files already have the component.
+  Allow --dry-run to preview without adding.

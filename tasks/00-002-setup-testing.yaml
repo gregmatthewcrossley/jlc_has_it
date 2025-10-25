@@ -1,0 +1,20 @@
+id: 00-002
+phase: 0
+title: Set up testing framework
+description: |
+  Configure pytest and create initial test structure. Set up test fixtures
+  and utilities for mocking external services.
+dependencies:
+  - 00-001
+acceptance_criteria:
+  - pytest installed and configured in pyproject.toml
+  - tests/ directory created with __init__.py
+  - tests/conftest.py created with common fixtures
+  - Sample test file demonstrates testing works
+  - pytest runs successfully (even if no real tests yet)
+  - pytest-mock installed for mocking
+estimated_complexity: low
+status: pending
+notes: |
+  Will need fixtures for mocking JLCPCB responses later.
+  Consider pytest-vcr for recording HTTP interactions.

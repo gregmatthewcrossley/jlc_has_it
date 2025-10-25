@@ -1,0 +1,22 @@
+id: 01-003
+phase: 1
+title: Create component data models
+description: |
+  Define dataclasses for representing component data consistently across
+  the application (Component, Specifications, Availability, etc.).
+dependencies:
+  - 01-001
+acceptance_criteria:
+  - Component dataclass created with all relevant fields
+  - ComponentSpecs dataclass for electrical specs
+  - Availability dataclass for stock/pricing info
+  - Type hints used throughout
+  - Validation for required fields
+  - Tests for dataclass behavior
+estimated_complexity: low
+status: pending
+notes: |
+  Use Python dataclasses with type hints.
+  Consider pydantic for validation if needed.
+  Fields: part_number, description, manufacturer, category, basic/extended,
+  stock_qty, price, voltage, capacitance, package, datasheet_url, etc.

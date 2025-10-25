@@ -1,0 +1,21 @@
+id: 04-003
+phase: 4
+title: Implement generic symbol generator
+description: |
+  Create fallback generator for basic KiCad symbols when library sources
+  don't have the component (generic resistor, capacitor, IC symbols).
+dependencies:
+  - 02-004
+acceptance_criteria:
+  - GenericSymbolGenerator class created
+  - Can generate generic symbols for common component types
+  - Resistor, capacitor, inductor, diode, transistor templates
+  - Generic IC symbol with configurable pin count
+  - Generated symbols are valid and usable in KiCad
+  - Tests verify generated symbols work
+estimated_complexity: medium
+status: pending
+notes: |
+  These are "good enough" placeholders.
+  User can replace with specific symbol later.
+  Focus on basic passive components and ICs.

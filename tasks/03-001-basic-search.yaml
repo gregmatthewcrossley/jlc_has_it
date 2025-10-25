@@ -1,0 +1,21 @@
+id: 03-001
+phase: 3
+title: Implement basic component search
+description: |
+  Create search engine that queries JLCPCB and returns ranked results.
+dependencies:
+  - 01-002
+  - 01-003
+acceptance_criteria:
+  - ComponentSearch class created in jlc_has_it/core/search.py
+  - search(query) method accepts text query
+  - Returns list of Component objects
+  - Results sorted by relevance (basic > extended, in stock first)
+  - Can filter by component type (resistor, capacitor, etc)
+  - Has tests with mocked JLCPCB responses
+estimated_complexity: medium
+status: pending
+notes: |
+  Start with simple keyword matching.
+  Natural language parsing comes in Phase 6.
+  Focus on basic filtering and ranking first.

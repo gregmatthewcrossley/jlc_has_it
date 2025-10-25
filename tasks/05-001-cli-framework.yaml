@@ -1,0 +1,21 @@
+id: 05-001
+phase: 5
+title: Set up CLI framework
+description: |
+  Create basic CLI application structure using Click or Typer.
+  Implement help system and basic commands.
+dependencies:
+  - 00-001
+acceptance_criteria:
+  - CLI framework chosen and installed (Click or Typer)
+  - Entry point created (bin/jlc-has-it or jlc_has_it/cli/main.py)
+  - --help works and shows useful information
+  - --version shows project version
+  - CLI installable and accessible from shell
+  - Basic structure for subcommands in place
+estimated_complexity: low
+status: pending
+notes: |
+  Typer is more modern, Click is more established.
+  Use rich for nice terminal output.
+  Entry point in pyproject.toml [project.scripts].

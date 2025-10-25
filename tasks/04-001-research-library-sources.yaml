@@ -1,0 +1,23 @@
+id: 04-001
+phase: 4
+title: Research component library sources
+description: |
+  Investigate sources for KiCad symbols, footprints, and 3D models.
+  Document APIs, download methods, and data formats.
+dependencies:
+  - 00-001
+acceptance_criteria:
+  - Document created (docs/library-sources.md)
+  - Ultralibrarian API/download method documented
+  - SnapEDA API/download method documented
+  - Component Search Engine investigated
+  - JLCPCB's own library (if available) documented
+  - Download formats and conversion needs documented
+  - Rate limits and terms of service documented
+estimated_complexity: medium
+status: pending
+notes: |
+  Ultralibrarian: https://www.ultralibrarian.com/
+  SnapEDA: https://www.snapeda.com/
+  May need to convert formats or scrape websites.
+  Check if JLCPCB provides KiCad libraries directly.

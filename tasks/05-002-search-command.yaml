@@ -1,0 +1,22 @@
+id: 05-002
+phase: 5
+title: Implement search command
+description: |
+  Create 'search' CLI command that queries JLCPCB and displays results.
+dependencies:
+  - 05-001
+  - 03-001
+acceptance_criteria:
+  - `jlc-has-it search "query"` works
+  - Displays results in a readable table format
+  - Shows key info: part number, description, price, stock, basic/extended
+  - Supports --limit flag to control result count
+  - Supports --type flag to filter by component type
+  - Shows "no results found" gracefully
+  - Has integration test
+estimated_complexity: medium
+status: pending
+notes: |
+  Use rich.table for nice output.
+  Consider pagination for many results.
+  Show URL to component page on JLCPCB.

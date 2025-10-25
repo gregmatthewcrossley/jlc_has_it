@@ -1,0 +1,19 @@
+id: 00-001
+phase: 0
+title: Initialize Python project structure
+description: |
+  Create the basic Python project structure including directory layout,
+  pyproject.toml, and initial package structure.
+dependencies: []
+acceptance_criteria:
+  - pyproject.toml exists with project metadata
+  - jlc_has_it/ package directory created with __init__.py
+  - core/, kicad/, cli/ subdirectories created
+  - README.md created with basic project info
+  - .gitignore created for Python projects
+  - Project installable with `pip install -e .`
+estimated_complexity: low
+status: pending
+notes: |
+  Use modern Python packaging (pyproject.toml, not setup.py).
+  Target Python 3.9+ for compatibility.

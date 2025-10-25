@@ -1,0 +1,22 @@
+id: 06-001
+phase: 6
+title: Design natural language query parser
+description: |
+  Design the architecture for parsing natural language queries like
+  "50V 220uF SMD capacitor" into structured search parameters.
+dependencies:
+  - 03-001
+acceptance_criteria:
+  - Document created (docs/query-parsing.md) with design
+  - Defines QueryParams dataclass structure
+  - Documents extraction rules for common patterns
+  - Lists example queries and expected parsing
+  - Decides between rules-based vs LLM-based parsing
+  - Defines fallback behavior for unparseable queries
+estimated_complexity: medium
+status: pending
+notes: |
+  Could use regex patterns, or LLM (Claude/GPT) for parsing.
+  Patterns to extract: value+unit (220uF), voltage (50V), package (SMD, 0805),
+  component type (capacitor, resistor).
+  LLM might be overkill for structured queries.

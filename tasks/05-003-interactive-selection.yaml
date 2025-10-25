@@ -1,0 +1,21 @@
+id: 05-003
+phase: 5
+title: Implement interactive component selection
+description: |
+  Add interactive UI for selecting a component from search results using
+  arrow keys and enter.
+dependencies:
+  - 05-002
+acceptance_criteria:
+  - After search, user can interactively select component
+  - Uses library like inquirer, questionary, or rich prompts
+  - Shows component details when highlighted
+  - Enter selects component, Esc/Ctrl-C cancels
+  - Returns selected Component object
+  - Works in both interactive and non-interactive terminals
+estimated_complexity: medium
+status: pending
+notes: |
+  questionary or InquirerPy for nice selection UI.
+  Fallback to numbered list if terminal not interactive.
+  Show expanded details in a panel while browsing.

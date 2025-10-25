@@ -1,0 +1,21 @@
+id: 03-002
+phase: 3
+title: Implement specification-based filtering
+description: |
+  Add ability to filter search results by component specifications
+  (voltage, capacitance, resistance, package type, etc).
+dependencies:
+  - 03-001
+acceptance_criteria:
+  - ComponentSearch supports spec filters (voltage, capacitance, etc)
+  - Can specify ranges (e.g., voltage >= 50V)
+  - Can filter by package type (SMD/through-hole, package size)
+  - Can filter by manufacturer
+  - Filters combine logically (AND operation)
+  - Tests verify filtering works correctly
+estimated_complexity: medium
+status: pending
+notes: |
+  Need to normalize units (uF vs nF, kOhm vs Ohm).
+  Handle tolerances (e.g., "50V or higher").
+  Package type mapping (0805, SOT-23, etc).

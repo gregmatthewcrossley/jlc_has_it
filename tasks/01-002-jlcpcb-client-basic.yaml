@@ -1,0 +1,21 @@
+id: 01-002
+phase: 1
+title: Implement basic JLCPCB client
+description: |
+  Create a client class to fetch component data from JLCPCB, based on
+  research findings. Implement basic search functionality.
+dependencies:
+  - 01-001
+acceptance_criteria:
+  - JLCPCBClient class created in jlc_has_it/core/jlcpcb_client.py
+  - search() method implemented
+  - Returns structured component data (dataclass or dict)
+  - Handles HTTP errors gracefully
+  - Has basic tests with mocked responses
+  - Respects rate limits (if applicable)
+estimated_complexity: medium
+status: pending
+notes: |
+  Use requests or httpx for HTTP client.
+  Create Component dataclass for structured data.
+  Mock responses in tests to avoid hitting live service.
