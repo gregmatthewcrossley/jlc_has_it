@@ -16,7 +16,7 @@ acceptance_criteria:
   - Has tests with mocked HTTP responses
   - Handles download failures gracefully
 estimated_complexity: medium
-status: pending
+status: completed
 notes: |
   Database is split into cache.z01, cache.z02, cache.zip files.
   Need to download all parts and concatenate them.

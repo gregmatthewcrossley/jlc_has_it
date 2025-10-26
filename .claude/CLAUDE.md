@@ -203,9 +203,11 @@ my_project/
 
 ### Commit Authorship
 
-- When Claude makes commits autonomously, use `--author="Claude Code <noreply@anthropic.com>"`
+- When Claude makes commits autonomously, use both `--author` and set committer identity:
+  - `GIT_COMMITTER_NAME="Claude Code" GIT_COMMITTER_EMAIL="noreply@anthropic.com" git commit --author="Claude Code <noreply@anthropic.com>" --no-gpg-sign`
+  - Or use environment variables for all git commands in the session
 - **IMPORTANT**: Always use `--no-gpg-sign` flag when committing as Claude to avoid triggering user's 1Password SSH signing
-- This provides clear attribution in git history
+- This provides clear attribution in git history (both author and committer show as Claude)
 - Human-made commits use the user's normal git identity
 - For collaborative work, use Co-Authored-By trailer
 
