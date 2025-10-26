@@ -11,19 +11,36 @@ Get up and running in 5 minutes:
 ```bash
 # Install p7zip (required for database extraction)
 brew install p7zip
+
+# Optional: install pipx for clean Python package isolation
+# (if you want system-wide installation instead of development mode)
+brew install pipx
 ```
 
 ### 2. Clone & Install
+
+**Option A: Development mode** (recommended if you'll be modifying code)
 
 ```bash
 git clone https://github.com/gcrossley/jlc_has_it.git
 cd jlc_has_it
 
-# Install the package and dependencies
+# Install the package in development mode
 pip install -e .
 
 # Install easyeda2kicad for library downloads
 pip install easyeda2kicad
+```
+
+**Option B: System-wide installation** (if you just want to use it)
+
+```bash
+git clone https://github.com/gcrossley/jlc_has_it.git
+cd jlc_has_it
+
+# Install isolated with pipx
+pipx install .
+pipx inject jlc-has-it easyeda2kicad
 ```
 
 ### 3. Configure Claude Code
