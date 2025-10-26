@@ -2,6 +2,64 @@
 
 A local MCP server providing conversational component search for KiCad through Claude Code/Desktop.
 
+## Quick Start
+
+Get up and running in 5 minutes:
+
+### 1. Install System Dependencies (macOS)
+
+```bash
+# Install p7zip (required for database extraction)
+brew install p7zip
+```
+
+### 2. Clone & Install
+
+```bash
+git clone https://github.com/gcrossley/jlc_has_it.git
+cd jlc_has_it
+
+# Install the package and dependencies
+pip install -e .
+
+# Install easyeda2kicad for library downloads
+pip install easyeda2kicad
+```
+
+### 3. Configure Claude Code
+
+Create or update `~/.claude/mcp_settings.json`:
+
+```json
+{
+  "mcpServers": {
+    "jlc-has-it": {
+      "command": "jlc-has-it-mcp",
+      "args": []
+    }
+  }
+}
+```
+
+### 4. Restart Claude Code
+
+Close and reopen Claude Code to connect to the MCP server.
+
+### 5. Start Using!
+
+Open a KiCad project in Claude Code and ask:
+
+```
+"I need a 100nF ceramic capacitor for 16V operation"
+"What resistors do you have in stock?"
+"Add C1525 to my project"
+"Compare these two capacitors: C1525 and C307331"
+```
+
+Claude will search JLCPCB, show you results, and can add components to your project.
+
+---
+
 ## Overview
 
 JLC Has It helps hobbyist electronics designers using KiCad 9.0 to quickly find and add JLCPCB components to their projects through a natural conversational interface.
