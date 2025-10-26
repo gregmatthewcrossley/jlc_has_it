@@ -47,7 +47,7 @@ cli = [
 ]
 
 [project.scripts]
-jlc-has-it-mcp = "jlc_has_it.mcp.__main__:main"
+jlc-has-it-mcp = "jlc_has_it.mcp.__main__:run"
 jlc-has-it = "jlc_has_it.cli.main:app"
 
 [project.urls]

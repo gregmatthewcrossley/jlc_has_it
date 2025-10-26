@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "jlc-has-it": {
+      "command": "jlc-has-it-mcp",
+      "args": []
+    }
+  }
+}

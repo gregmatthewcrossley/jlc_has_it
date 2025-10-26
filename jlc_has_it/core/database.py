@@ -2,6 +2,7 @@
 
 import json
 import sqlite3
+import subprocess
 import zipfile
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -14,7 +15,6 @@ class DatabaseManager:
     """Manages downloading and updating the jlcparts component database."""
 
     BASE_URL = "https://yaqwsx.github.io/jlcparts/data"
-    DATABASE_PARTS = ["cache.z01", "cache.z02", "cache.zip"]
     MAX_AGE_DAYS = 1
 
     def __init__(self, cache_dir: Optional[Path] = None) -> None:
@@ -59,52 +59,75 @@ class DatabaseManager:
     def download_database(self) -> None:
         """Download and extract the jlcparts database.
 
-        Downloads multi-part zip files, concatenates them, extracts the database,
-        and validates it.
+        Downloads multi-part zip files, extracts the database, and validates it.
 
         Raises:
             requests.RequestException: If download fails
             zipfile.BadZipFile: If zip file is corrupted
             sqlite3.DatabaseError: If database is invalid
         """
-        # Download all parts
+        # Dynamically discover and download all parts (z01, z02, ..., z99, then .zip)
         part_files: list[Path] = []
         try:
-            for part_name in self.DATABASE_PARTS:
+            # Download numbered parts (z01, z02, etc.) until we hit a 404
+            part_num = 1
+            while part_num <= 99:
+                part_name = f"cache.z{part_num:02d}"
                 url = f"{self.BASE_URL}/{part_name}"
                 part_path = self.cache_dir / part_name
 
                 print(f"Downloading {part_name}...")
                 response = requests.get(url, timeout=60)
-                response.raise_for_status()
 
+                if response.status_code == 404:
+                    # No more parts
+                    break
+
+                response.raise_for_status()
                 part_path.write_bytes(response.content)
                 part_files.append(part_path)
                 print(f"  Downloaded {len(response.content)} bytes")
+                part_num += 1
 
-            # Concatenate parts into a single zip file
-            combined_zip = self.cache_dir / "cache_combined.zip"
-            print("Concatenating zip parts...")
-            with combined_zip.open("wb") as outfile:
-                for part_file in part_files:
-                    outfile.write(part_file.read_bytes())
+            # Download the final .zip part
+            url = f"{self.BASE_URL}/cache.zip"
+            part_path = self.cache_dir / "cache.zip"
 
-            # Extract the database
-            print("Extracting database...")
-            with zipfile.ZipFile(combined_zip, "r") as zip_file:
-                # The zip should contain cache.sqlite3
-                zip_file.extract("cache.sqlite3", self.cache_dir)
+            print("Downloading cache.zip...")
+            response = requests.get(url, timeout=60)
+            response.raise_for_status()
+
+            part_path.write_bytes(response.content)
+            part_files.append(part_path)
+            print(f"  Downloaded {len(response.content)} bytes")
+
+            # Extract using 7z (handles multi-part zip archives)
+            # Requires: brew install p7zip
+            # The parts need to be in the same directory and named cache.z01-z08, cache.zip
+            print("Extracting database with 7z...")
+            try:
+                # Extract from the first part; 7z will automatically find the others
+                result = subprocess.run(
+                    ["7z", "x", str(self.cache_dir / "cache.z01"), f"-o{self.cache_dir}"],
+                    capture_output=True,
+                    text=True,
+                )
+                if result.returncode != 0:
+                    error_msg = result.stderr or result.stdout or "Unknown error"
+                    raise zipfile.BadZipFile(f"7z extraction failed: {error_msg}")
+            except FileNotFoundError:
+                raise zipfile.BadZipFile(
+                    "7z command not found. Install with: brew install p7zip"
+                )
 
             # Validate the database
             self._validate_database()
             print(f"Database downloaded successfully to {self.database_path}")
 
         finally:
-            # Clean up temporary files
+            # Clean up temporary files (keep the database, remove the parts)
             for part_file in part_files:
                 part_file.unlink(missing_ok=True)
-            combined_zip = self.cache_dir / "cache_combined.zip"
-            combined_zip.unlink(missing_ok=True)
 
     def _validate_database(self) -> None:
         """Validate that the database is a valid SQLite file.

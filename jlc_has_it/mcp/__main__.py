@@ -2,6 +2,7 @@
 
 import asyncio
 import json
+import sys
 from typing import Any
 
 from mcp.server import Server
@@ -24,6 +25,10 @@ async def main() -> None:
 
     # Create MCP server
     server = Server("jlc-has-it")
+
+    # Print ready message
+    print("✓ JLC Has It MCP server initialized and ready for connections", file=sys.stderr)
+    print("  Waiting for Claude Code/Desktop to connect...", file=sys.stderr)
 
     # Define MCP tools
     @server.list_tools()
@@ -208,5 +213,10 @@ async def main() -> None:
         await server.run(read_stream, write_stream, server.create_initialization_options())
 
 
-if __name__ == "__main__":
+def run() -> None:
+    """Synchronous entry point for MCP server."""
     asyncio.run(main())
+
+
+if __name__ == "__main__":
+    run()
