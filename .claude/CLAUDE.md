@@ -85,20 +85,33 @@ my_project/
 
 ### Integration Points
 
-- **JLCPCB**: Parts catalog API or web scraping for inventory, specs, pricing
-- **Component Libraries**: Ultralibrarian, SnapEDA, Component Search Engine
+- **jlcparts Database**: Daily-updated SQLite database with all JLCPCB components
+  - URL: https://yaqwsx.github.io/jlcparts/data/
+  - License: MIT (Copyright 2024 Jan Mrázek)
+  - Update schedule: Daily at 3AM UTC
+  - Size: ~50MB compressed
+  - No authentication required
+- **Component Libraries**: Ultralibrarian, SnapEDA, Component Search Engine for symbols/footprints
 - **LLM Integration**: Parse natural language queries into structured component requirements
 - **KiCad Library Format**: Generate valid S-expression files
 
 ### Key Workflows
 
-1. **Component Search**:
+1. **Database Management**:
+   - Check local database age (stored in ~/.cache/jlc_has_it/)
+   - If >1 day old or missing, download fresh database
+   - Download multi-part zip files (cache.z01, cache.z02, cache.zip)
+   - Extract and validate SQLite database
+   - Use for all subsequent component queries
+
+2. **Component Search**:
    - Parse natural language query → extract specs (voltage, capacitance, package type)
-   - Query JLCPCB for matching parts
+   - Query local SQLite database for matching parts
    - Filter by availability (basic > extended), stock status, price
+   - Rank results using scoring algorithm
    - Present ranked results to user
 
-2. **Library Addition**:
+3. **Library Addition**:
    - User selects component from search results
    - Download symbol from library source (or generate generic if unavailable)
    - Download footprint and 3D model
@@ -322,30 +335,56 @@ mypy jlc_has_it/
 
 ### Component Data Model
 
-Components should be represented using dataclasses with type hints:
+Components should be represented using dataclasses matching the jlcparts database schema:
 
 ```python
 @dataclass
 class Component:
-    part_number: str          # JLCPCB part number (e.g., "C12345")
+    lcsc: str                    # JLCPCB part number (e.g., "C1525")
+    mfr: str                     # Manufacturer part number
     description: str
     manufacturer: str
-    category: str            # Resistor, Capacitor, IC, etc.
-    is_basic: bool           # Basic vs Extended part
-    stock_qty: int
-    price: Decimal
-    specs: ComponentSpecs    # Electrical specifications
-    datasheet_url: str | None
+    category: str                # Top-level category
+    subcategory: str             # Subcategory
+    joints: int                  # Number of pins/pads
+    basic: bool                  # True=Basic part, False=Extended part
+    stock: int                   # Current stock quantity
+    price_tiers: list[dict]      # [{"qty": 1, "price": 0.0012}, ...]
+    attributes: dict             # Normalized specifications (see below)
 
-@dataclass
-class ComponentSpecs:
-    # Component-type specific fields
-    voltage: str | None       # e.g., "50V"
-    capacitance: str | None   # e.g., "220uF"
-    resistance: str | None    # e.g., "10kΩ"
-    package: str | None       # e.g., "0805", "SOT-23"
-    # ... other specs
+    @classmethod
+    def from_db_row(cls, row):
+        """Construct from SQLite row"""
+        return cls(
+            lcsc=row['lcsc'],
+            mfr=row['mfr'],
+            description=row['description'],
+            manufacturer=row['manufacturer'],
+            category=row['category'],
+            subcategory=row['subcategory'],
+            joints=row['joints'],
+            basic=bool(row['basic']),
+            stock=row['stock'],
+            price_tiers=json.loads(row['price']),
+            attributes=json.loads(row['attributes'])
+        )
 ```
+
+### Attributes JSON Structure (from jlcparts)
+
+The `attributes` field contains normalized component specifications:
+
+```python
+{
+    "Capacitance": {"value": 100, "unit": "nF"},
+    "Voltage": {"value": 16, "unit": "V"},
+    "Tolerance": {"value": 10, "unit": "%"},
+    "Package": "0402",
+    "Temperature Coefficient": "X7R"
+}
+```
+
+Access using JSON functions in SQLite or parse after retrieval in Python.
 
 ### Ranking Algorithm
 

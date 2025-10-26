@@ -1,21 +1,25 @@
 id: 01-001
 phase: 1
-title: Research JLCPCB API and data sources
+title: Research jlcparts database integration
 description: |
-  Investigate how to access JLCPCB component data. Document findings about
-  available APIs, web scraping requirements, data formats, and rate limits.
+  Research the jlcparts project (https://github.com/yaqwsx/jlcparts) which
+  provides daily-updated SQLite database of JLCPCB components. Document the
+  database structure, update mechanism, and how to integrate it.
 dependencies:
   - 00-001
 acceptance_criteria:
-  - Document created (docs/jlcpcb-integration.md) with findings
-  - API endpoints documented (if available)
-  - Alternative scraping approach documented (if needed)
-  - Sample response data captured and saved
-  - Authentication requirements documented
-  - Rate limits and usage policies documented
-estimated_complexity: medium
+  - Document created (docs/jlcparts-integration.md) with findings
+  - Database download URL documented (https://yaqwsx.github.io/jlcparts/data/)
+  - Database schema documented (tables, fields, relationships)
+  - Update schedule confirmed (daily at 3AM UTC)
+  - Sample queries demonstrated
+  - MIT license compliance documented
+  - Database file structure documented (cache.z01, cache.z02, cache.zip)
+estimated_complexity: low
 status: pending
 notes: |
-  Check if JLCPCB has public API, otherwise may need web scraping.
-  Look for existing Python libraries that do this.
-  JLCPCB parts library: https://jlcpcb.com/parts
+  The jlcparts project maintains a daily-updated SQLite database of all JLCPCB components.
+  Database is ~50MB, updated daily via GitHub Actions.
+  No authentication required - publicly accessible.
+  MIT licensed - we can use freely with attribution.
+  Database URL: https://yaqwsx.github.io/jlcparts/data/cache.z01

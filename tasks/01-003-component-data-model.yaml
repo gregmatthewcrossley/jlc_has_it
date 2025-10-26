@@ -2,21 +2,26 @@ id: 01-003
 phase: 1
 title: Create component data models
 description: |
-  Define dataclasses for representing component data consistently across
-  the application (Component, Specifications, Availability, etc.).
+  Define dataclasses for representing component data from jlcparts database.
+  Match the database schema structure for easy querying.
 dependencies:
   - 01-001
 acceptance_criteria:
-  - Component dataclass created with all relevant fields
-  - ComponentSpecs dataclass for electrical specs
-  - Availability dataclass for stock/pricing info
+  - Component dataclass created matching jlcparts database schema
+  - Includes fields from database: lcsc, mfr, description, category, subcategory
+  - ComponentSpecs for normalized attributes (from database attributes column)
+  - Price dataclass for pricing tiers (from price JSON field)
   - Type hints used throughout
   - Validation for required fields
   - Tests for dataclass behavior
+  - from_db_row() class method to construct from SQLite row
 estimated_complexity: low
 status: pending
 notes: |
   Use Python dataclasses with type hints.
-  Consider pydantic for validation if needed.
-  Fields: part_number, description, manufacturer, category, basic/extended,
-  stock_qty, price, voltage, capacitance, package, datasheet_url, etc.
+  jlcparts database has normalized attributes in JSON format.
+  Fields include: lcsc (part number), mfr (manufacturer part number),
+  description, category, subcategory, manufacturer, joints (pin count),
+  basic (basic/extended flag), stock, price (JSON with tiers),
+  attributes (JSON with normalized specs like voltage, capacitance, etc.)
+  Match their schema for compatibility.

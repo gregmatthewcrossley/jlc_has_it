@@ -1,21 +1,25 @@
 id: 01-002
 phase: 1
-title: Implement basic JLCPCB client
+title: Implement jlcparts database downloader
 description: |
-  Create a client class to fetch component data from JLCPCB, based on
-  research findings. Implement basic search functionality.
+  Create a database manager that downloads the jlcparts SQLite database
+  and keeps it up to date (refresh if >1 day old).
 dependencies:
   - 01-001
 acceptance_criteria:
-  - JLCPCBClient class created in jlc_has_it/core/jlcpcb_client.py
-  - search() method implemented
-  - Returns structured component data (dataclass or dict)
-  - Handles HTTP errors gracefully
-  - Has basic tests with mocked responses
-  - Respects rate limits (if applicable)
+  - DatabaseManager class created in jlc_has_it/core/database.py
+  - download_database() method downloads multi-part zip files
+  - check_database_age() determines if refresh needed (>1 day old)
+  - update_if_needed() downloads fresh database if outdated
+  - Extracts and validates SQLite database file
+  - Stores database in local cache directory (~/.cache/jlc_has_it/)
+  - Has tests with mocked HTTP responses
+  - Handles download failures gracefully
 estimated_complexity: medium
 status: pending
 notes: |
-  Use requests or httpx for HTTP client.
-  Create Component dataclass for structured data.
-  Mock responses in tests to avoid hitting live service.
+  Database is split into cache.z01, cache.z02, cache.zip files.
+  Need to download all parts and concatenate them.
+  Use requests for HTTP downloads with progress tracking.
+  Verify database integrity after download (check it's valid SQLite).
+  Store in XDG_CACHE_HOME or ~/.cache/jlc_has_it/cache.sqlite3
