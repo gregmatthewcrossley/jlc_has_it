@@ -16,7 +16,7 @@ acceptance_criteria:
   - Tests for dataclass behavior
   - from_db_row() class method to construct from SQLite row
 estimated_complexity: low
-status: pending
+status: completed
 notes: |
   Use Python dataclasses with type hints.
   jlcparts database has normalized attributes in JSON format.

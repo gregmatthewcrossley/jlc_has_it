@@ -16,7 +16,7 @@ acceptance_criteria:
   - MIT license compliance documented
   - Database file structure documented (cache.z01, cache.z02, cache.zip)
 estimated_complexity: low
-status: pending
+status: completed
 notes: |
   The jlcparts project maintains a daily-updated SQLite database of all JLCPCB components.
   Database is ~50MB, updated daily via GitHub Actions.
