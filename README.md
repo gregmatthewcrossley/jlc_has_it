@@ -4,8 +4,6 @@ A local MCP server providing conversational component search for KiCad through C
 
 ## Quick Start
 
-Get up and running in 5 minutes:
-
 ### 1. Install System Dependencies (macOS)
 
 ```bash
@@ -17,28 +15,13 @@ brew install p7zip
 brew install pipx
 ```
 
-### 2. Clone & Install
-
-**Option A: Development mode** (recommended if you'll be modifying code)
+### 2. Install JLC Has It
 
 ```bash
 git clone https://github.com/gcrossley/jlc_has_it.git
 cd jlc_has_it
 
-# Install the package in development mode
-pip install -e .
-
-# Install easyeda2kicad for library downloads
-pip install easyeda2kicad
-```
-
-**Option B: System-wide installation** (if you just want to use it)
-
-```bash
-git clone https://github.com/gcrossley/jlc_has_it.git
-cd jlc_has_it
-
-# Install isolated with pipx
+# Install with pipx (clean, isolated installation)
 pipx install .
 pipx inject jlc-has-it easyeda2kicad
 ```
@@ -324,21 +307,45 @@ Returns:
 
 ## Development
 
-```bash
-# Install with development dependencies
-pip install -e ".[dev,cli]"
+### Setting Up Development Environment
 
-# Run unit tests (104 tests, all passing)
+**Clone the repository:**
+
+```bash
+git clone https://github.com/gcrossley/jlc_has_it.git
+cd jlc_has_it
+```
+
+**Install for development:**
+
+```bash
+# Install package with development and CLI dependencies
+pip install -e ".[dev,cli]"
+```
+
+### Running Tests
+
+```bash
+# Run all unit tests (104 tests, all passing)
 pytest
 
 # Run integration tests (with real JLCPCB database)
 pytest tests/integration/ -v
 
-# Format code
+# Run tests in parallel
+pytest -n auto
+```
+
+### Code Quality
+
+```bash
+# Format code with black
 black .
+
+# Lint with ruff
 ruff check .
 
-# Type checking
+# Type checking with mypy
 mypy jlc_has_it/
 ```
 
