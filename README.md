@@ -57,8 +57,8 @@ Open Claude Code at the root of your KiCad project:
 # Navigate to your KiCad project folder
 cd ~/my-kicad-projects/my-project
 
-# Open Claude Code here
-claude .
+# Open Claude Code
+claude
 ```
 
 Then ask Claude Code naturally:
