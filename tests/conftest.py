@@ -1,12 +1,13 @@
 """Pytest configuration and common fixtures."""
 
-import pytest
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
+
+import pytest
 
 
 @pytest.fixture
-def sample_component_data() -> Dict[str, Any]:
+def sample_component_data() -> dict[str, Any]:
     """Sample component data for testing."""
     return {
         "lcsc": "C12345",

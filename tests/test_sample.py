@@ -1,7 +1,7 @@
 """Sample tests to verify pytest is working correctly."""
 
-from typing import Any, Dict
 from pathlib import Path
+from typing import Any
 
 
 def test_pytest_is_working() -> None:
@@ -9,7 +9,7 @@ def test_pytest_is_working() -> None:
     assert True
 
 
-def test_sample_component_data_fixture(sample_component_data: Dict[str, Any]) -> None:
+def test_sample_component_data_fixture(sample_component_data: dict[str, Any]) -> None:
     """Test that sample component data fixture works."""
     assert sample_component_data["lcsc"] == "C12345"
     assert sample_component_data["basic"] is True

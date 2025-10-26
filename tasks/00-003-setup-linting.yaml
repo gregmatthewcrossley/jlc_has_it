@@ -14,7 +14,7 @@ acceptance_criteria:
   - `ruff check .` runs without errors
   - `mypy jlc_has_it/` runs without errors
 estimated_complexity: low
-status: pending
+status: completed
 notes: |
   Use pyproject.toml for all tool configuration.
   Start with moderate mypy strictness, can increase later.
