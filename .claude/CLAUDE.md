@@ -139,6 +139,122 @@ Short summary (50 chars or less)
 - When explicitly requested by user
 - Before major refactoring or risky changes
 
+### Git Worktrees for Parallel Sessions
+
+**Use git worktrees to run multiple Claude Code sessions in parallel, each working on different tasks simultaneously.**
+
+#### What are Git Worktrees?
+
+Git worktrees allow multiple working directories from the same repository, each checked out to different branches. This enables true parallel development without conflicts.
+
+#### Coordinator Workflow (Main Worktree)
+
+The main repository acts as the coordinator:
+
+```bash
+# From main worktree: /Users/gregmatthewcrossley/Developer/jlc_has_it/
+# Create worktrees for parallel tasks
+
+git worktree add ../jlc_has_it-task-00-001 -b task/00-001
+git worktree add ../jlc_has_it-task-01-001 -b task/01-001
+git worktree add ../jlc_has_it-task-02-001 -b task/02-001
+
+# List all worktrees
+git worktree list
+
+# Now open Claude Code in each worktree directory:
+# - Terminal 1: cd ../jlc_has_it-task-00-001 && claude
+# - Terminal 2: cd ../jlc_has_it-task-01-001 && claude
+# - Terminal 3: cd ../jlc_has_it-task-02-001 && claude
+
+# Each session works independently on its task
+# When tasks complete, return to main worktree and merge
+
+cd /Users/gregmatthewcrossley/Developer/jlc_has_it/
+git merge task/00-001
+git merge task/01-001
+git merge task/02-001
+
+# Clean up worktrees when done
+git worktree remove ../jlc_has_it-task-00-001
+git worktree remove ../jlc_has_it-task-01-001
+git worktree remove ../jlc_has_it-task-02-001
+
+# Optional: delete merged branches
+git branch -d task/00-001 task/01-001 task/02-001
+```
+
+#### Worker Agent Instructions
+
+When working in a worktree, each Claude session should:
+
+```bash
+# Verify you're in the correct worktree and branch
+pwd
+git branch --show-current
+
+# Complete the assigned task
+# Follow acceptance criteria from tasks/XX-YYY-task-name.yaml
+
+# Commit work with Claude authorship
+git add .
+git commit --author="Claude Code <noreply@anthropic.com>" -m "Complete task XX-YYY
+
+- Change 1
+- Change 2
+"
+
+# Do NOT push to remote
+# Do NOT merge to main (coordinator handles this)
+# Report completion status
+```
+
+#### Benefits of Worktrees for This Project
+
+- ✅ **True parallelization**: 3-5 Claude sessions work simultaneously without conflicts
+- ✅ **Isolated environments**: Each task has its own virtualenv, dependencies, test runs
+- ✅ **Clean history**: Each branch has focused commits for one task
+- ✅ **Easy rollback**: Abandon a worktree if task goes wrong
+- ✅ **No context switching**: Main worktree stays clean as coordinator
+
+#### Recommended Parallel Task Groups
+
+Based on `tasks/DEPENDENCIES.md`, these groups can run in parallel:
+
+**Group 1: Initial Research (3 worktrees)**
+- `task/01-001` - Research JLCPCB API
+- `task/02-001` - Research KiCad formats
+- `task/04-001` - Research library sources
+
+**Group 2: Phase 0 Setup (3 worktrees)**
+- `task/00-001` - Init Python project (run first, sequentially)
+- `task/00-002` - Setup testing (after 00-001)
+- `task/00-003` - Setup linting (after 00-001)
+
+**Group 3: Parsers (2 worktrees)**
+- `task/02-003` - Symbol reader
+- `task/02-005` - Footprint handler
+
+**Group 4: Search Components (2 worktrees)**
+- `task/03-002` - Spec filtering
+- `task/03-003` - Ranking algorithm
+
+#### Worktree Naming Convention
+
+Use this pattern for consistency:
+```
+../jlc_has_it-task-XX-YYY/
+```
+
+Where `XX-YYY` matches the task ID (e.g., `00-001`, `02-003`).
+
+#### Important Notes
+
+- Worktrees share the same git object database (commits, branches)
+- You cannot check out the same branch in multiple worktrees simultaneously
+- Each worktree can have its own `.venv/` and dependencies
+- The `.claude/settings.local.json` is local to each worktree
+
 ## Task Management
 
 This project uses a structured task system in the `tasks/` directory:
