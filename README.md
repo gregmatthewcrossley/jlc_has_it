@@ -47,7 +47,17 @@ Close and reopen Claude Code to connect to the MCP server.
 
 ### 5. Start Using!
 
-Open a KiCad project in Claude Code and ask:
+Open Claude Code at the root of your KiCad project:
+
+```bash
+# Navigate to your KiCad project folder
+cd ~/my-kicad-projects/my-project
+
+# Open Claude Code here (or open Claude Code and open folder)
+code .
+```
+
+Then ask Claude Code naturally:
 
 ```
 "I need a 100nF ceramic capacitor for 16V operation"
@@ -56,7 +66,7 @@ Open a KiCad project in Claude Code and ask:
 "Compare these two capacitors: C1525 and C307331"
 ```
 
-Claude will search JLCPCB, show you results, and can add components to your project.
+Claude will search JLCPCB, show you results, and can add components directly to your project's library.
 
 ---
 
