@@ -11,49 +11,99 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 Finding suitable components is time-consuming. Components must meet all these criteria:
 - In stock at JLCPCB (preferably "basic" parts, preferably SMD)
 - Well-known, commonly used, relatively inexpensive
-- Has a KiCad symbol available (from JLCPCB or community libraries like Ultralibrarian)
-- Has a 3D CAD model (preferably STEP format)
+- Has a complete KiCad library package available from JLCPCB/EasyEDA
+  - Symbol, footprint, and 3D CAD model (STEP format)
+  - Downloaded via easyeda2kicad.py Python tool
+  - Only show parts if complete package is available
 
 ### Solution
 
-Natural language interface to search for components (e.g., "find me a 50v rated 220uF SMD capacitor"), then automatically download symbol, footprint, and 3D model into a project-specific KiCad library.
+**Local MCP server** providing conversational component search through Claude Code/Desktop:
+
+**User Experience:**
+```
+User: "I need a through-hole capacitor rated for 50V and 220uF"
+
+Claude: [searches via MCP tools]
+        "I found 12 parts with complete KiCad libraries.
+         Top options:
+         1. C12345 - 220uF 50V Electrolytic | Stock: 5000 | $0.15
+         2. C23456 - 220uF 63V Ceramic X7R  | Stock: 3000 | $0.45
+
+         For power supply filtering, the electrolytic is typical.
+         Want me to add it to your project?"
+
+User: "What's the difference between them?"
+
+Claude: "The electrolytic (C12345) is larger but cheaper and common
+         for bulk filtering. The ceramic (C23456) is more compact
+         with lower ESR but costs more. Which do you prefer?"
+
+User: "Add the electrolytic one"
+
+Claude: [calls add_to_project MCP tool]
+        "Added C12345 to ./my-project/libraries/.
+         Refresh your KiCad libraries to use it."
+```
+
+**Technical Flow:**
+1. User has natural conversation with Claude Code/Desktop
+2. Claude calls MCP tools (search, compare, add_to_project)
+3. MCP server queries jlcparts database
+4. Downloads/validates libraries in parallel for top candidates
+5. Returns only parts with complete packages
+6. User selects via conversation → Claude adds to KiCad project
 
 ## Architecture
 
 ### Phased Approach
 
-**Phase 1** (MVP): Core library + CLI tool
-- Python-based (easier KiCad integration than Ruby)
-- Filesystem-only (no database initially)
-- Standalone tool that writes to KiCad project libraries
+**Phase 1** (MVP): Core library + Local MCP server
+- Python-based (easier KiCad integration)
+- MCP server runs locally on user's machine
+- Conversational interface through Claude Code/Desktop
+- Uses jlcparts SQLite database (downloaded locally)
+- Writes to project-specific KiCad libraries
+- Optional: Simple CLI tool for scripting/automation
 
-**Phase 2** (Optional): Add SQLite cache
-- Cache JLCPCB component metadata for faster searches
-- Track download history
-- Enable offline searching
+**Phase 2** (Optional enhancements):
+- Cache downloaded libraries to speed up repeat searches
+- Add more MCP tools (compare specs, show datasheets, etc.)
+- Improve ranking algorithm with user preferences
 
 **Phase 3** (Future): KiCad Action Plugin
-- Wrap core library in KiCad plugin
+- Direct integration into KiCad (no manual library refresh)
 - Add menu item inside KiCad
 - Insert components directly into open schematics
 
 ### Core Components
 
+**Layered Architecture:** Core library (LLM-agnostic) + MCP interface + optional CLI
+
 ```
 jlc_has_it/
-├── core/                      # Core business logic
-│   ├── search.py             # Component search logic
-│   ├── jlcpcb_client.py      # JLCPCB API/scraping
-│   ├── library_sources.py    # Ultralibrarian, SnapEDA integration
-│   └── nlp.py                # Natural language query parsing (LLM)
-├── kicad/                     # KiCad file format handling
-│   ├── symbol.py             # .kicad_sym generation
-│   ├── footprint.py          # .kicad_mod generation
-│   └── models.py             # .step/.wrl handling
-├── cli/                       # CLI interface
-│   └── main.py               # Command-line tool
-└── plugin/                    # Future: KiCad Action Plugin
-    └── jlc_has_it_action.py
+├── core/                      # Core business logic (LLM-agnostic)
+│   ├── database.py           # jlcparts SQLite access & updates
+│   ├── search.py             # Component search & ranking
+│   ├── library_downloader.py # easyeda2kicad integration (parallel)
+│   └── kicad/                # KiCad file handling
+│       ├── symbol.py         # .kicad_sym manipulation
+│       ├── footprint.py      # .kicad_mod handling
+│       └── project.py        # Project library integration
+├── mcp/                       # MCP server (primary interface)
+│   ├── server.py             # MCP server implementation
+│   ├── tools.py              # Tool definitions
+│   │   ├── search_components()
+│   │   ├── get_component_details()
+│   │   ├── add_to_project()
+│   │   └── compare_components()
+│   └── __main__.py           # Entry point: jlc-has-it-mcp
+├── cli/                       # Optional: Simple CLI for scripting
+│   └── main.py               # Entry point: jlc-has-it
+└── tests/
+    ├── core/
+    ├── mcp/
+    └── integration/
 ```
 
 ### KiCad File Formats
@@ -91,9 +141,20 @@ my_project/
   - Update schedule: Daily at 3AM UTC
   - Size: ~50MB compressed
   - No authentication required
-- **Component Libraries**: Ultralibrarian, SnapEDA, Component Search Engine for symbols/footprints
-- **LLM Integration**: Parse natural language queries into structured component requirements
-- **KiCad Library Format**: Generate valid S-expression files
+- **MCP (Model Context Protocol)**: Primary interface
+  - Local MCP server runs on user's machine
+  - Claude Code/Desktop connects via stdio transport
+  - Provides tools: search_components, get_component_details, add_to_project, compare_components
+  - User interacts through natural conversation with Claude
+  - **No Claude API calls needed** - user already in Claude!
+- **Component Libraries**: JLCPCB/EasyEDA via easyeda2kicad.py (Phase 1 only)
+  - GitHub: https://github.com/uPesy/easyeda2kicad.py
+  - PyPI: https://pypi.org/project/easyeda2kicad/
+  - Downloads symbols, footprints, and 3D models directly from JLCPCB/EasyEDA
+  - Downloads run in parallel for top N candidates
+  - Only parts with complete packages shown to user
+  - Future phases may add SnapEDA API as fallback source
+- **KiCad Library Format**: Manipulate valid S-expression files
 
 ### Key Workflows
 
@@ -104,25 +165,37 @@ my_project/
    - Extract and validate SQLite database
    - Use for all subsequent component queries
 
-2. **Component Search**:
-   - Parse natural language query → extract specs (voltage, capacitance, package type)
-   - Query local SQLite database for matching parts
-   - Filter by availability (basic > extended), stock status, price
-   - Rank results using scoring algorithm
-   - Present ranked results to user
+2. **Conversational Component Search** (via MCP):
+   - User asks Claude: "I need a through-hole capacitor rated for 50V and 220uF"
+   - Claude calls MCP `search_components` tool with parameters
+   - MCP server:
+     - Parses parameters from Claude's tool call
+     - Queries jlcparts SQLite database for matching parts
+     - Filters by availability (basic > extended), stock status
+     - Ranks results using scoring algorithm
+     - Takes top N candidates (e.g., 20 parts)
+     - **Downloads libraries in parallel** using easyeda2kicad for all N candidates
+     - **Validates each download** (exit code 0, symbol exists, footprint exists, 3D model exists)
+     - **Discards parts with incomplete packages**
+     - Returns only parts with complete, validated libraries to Claude
+   - Claude presents results conversationally with context and advice
+   - **User can ask follow-up questions** before selecting
 
-3. **Library Addition**:
-   - User selects component from search results
-   - Download symbol from library source (or generate generic if unavailable)
-   - Download footprint and 3D model
-   - Append to project's `.kicad_sym` file
-   - Add footprint to `footprints.pretty/` directory
-   - Add 3D model to `3d_models/` directory
-   - Update library table if needed
+3. **Library Integration** (via MCP tool):
+   - User tells Claude: "Add C12345 to my project"
+   - Claude calls MCP `add_to_project` tool
+   - MCP server:
+     - Libraries already downloaded and validated from search
+     - Appends symbol to project's `.kicad_sym` file
+     - Copies footprint to project's `footprints.pretty/` directory
+     - Copies 3D models to project's `3d_models/` directory
+     - Updates library tables if needed
+   - Claude confirms: "Added C12345. Refresh KiCad libraries to use it."
 
-3. **KiCad Refresh** (Phase 1):
-   - If KiCad is open: user must manually refresh libraries or reopen project
-   - If KiCad is closed: parts available on next open
+4. **KiCad Refresh** (manual, Phase 1):
+   - User manually refreshes symbol/footprint libraries in KiCad
+   - Or reopens the KiCad project
+   - Component now available for use in schematic
 
 ## Git Workflow
 
@@ -131,6 +204,7 @@ my_project/
 ### Commit Authorship
 
 - When Claude makes commits autonomously, use `--author="Claude Code <noreply@anthropic.com>"`
+- **IMPORTANT**: Always use `--no-gpg-sign` flag when committing as Claude to avoid triggering user's 1Password SSH signing
 - This provides clear attribution in git history
 - Human-made commits use the user's normal git identity
 - For collaborative work, use Co-Authored-By trailer
@@ -292,14 +366,17 @@ Based on task analysis, these libraries will likely be useful:
 - `kiutils` or `kicad-library-utils` - KiCad file format handling
 - `sexpdata` or custom parser - S-expression parsing
 
-**CLI & UI:**
-- `typer` or `click` - CLI framework (Typer is more modern)
+**MCP Integration:**
+- `mcp` - Model Context Protocol SDK from Anthropic
+- `pydantic` - Data validation for tool parameters
+
+**CLI & UI (optional):**
+- `typer` or `click` - CLI framework for optional CLI tool
 - `rich` - Terminal formatting, tables, progress bars
-- `questionary` or `InquirerPy` - Interactive prompts
 
 **HTTP & APIs:**
-- `requests` or `httpx` - HTTP client for JLCPCB/library sources
-- `beautifulsoup4` - Web scraping if needed
+- `requests` or `httpx` - HTTP client for downloading libraries
+- `easyeda2kicad` - Library download tool
 
 **Testing:**
 - `pytest` - Test framework
@@ -317,8 +394,21 @@ Based on task analysis, these libraries will likely be useful:
 # Install dependencies
 pip install -e .
 
-# Run CLI tool
-jlc-has-it search "50v 220uF SMD capacitor"
+# Run MCP server (for development/testing)
+jlc-has-it-mcp
+
+# Or run directly with Python
+python -m jlc_has_it.mcp
+
+# Configure in Claude Code (.claude/mcp_settings.json):
+{
+  "mcpServers": {
+    "jlc-has-it": {
+      "command": "jlc-has-it-mcp",
+      "args": []
+    }
+  }
+}
 
 # Run tests
 pytest
@@ -329,6 +419,9 @@ ruff check .
 
 # Type checking
 mypy jlc_has_it/
+
+# Optional: Run CLI tool (for scripting/automation)
+jlc-has-it search "50v 220uF SMD capacitor"
 ```
 
 ## Development Notes

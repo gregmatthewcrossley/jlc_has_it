@@ -14,7 +14,7 @@ acceptance_criteria:
   - pytest runs successfully (even if no real tests yet)
   - pytest-mock installed for mocking
 estimated_complexity: low
-status: pending
+status: completed
 notes: |
   Will need fixtures for mocking JLCPCB responses later.
   Consider pytest-vcr for recording HTTP interactions.
