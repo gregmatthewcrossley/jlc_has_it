@@ -28,8 +28,16 @@ pipx inject jlc-has-it easyeda2kicad
 
 ### 3. Configure Claude Code
 
-Create or update `~/.claude/mcp_settings.json`:
+Run the setup script (from the jlc_has_it directory):
 
+```bash
+./setup-mcp.sh
+```
+
+This configures `~/.claude/mcp_settings.json` to enable the MCP server for all your KiCad projects.
+
+**Manual setup** (if you prefer):
+Create or update `~/.claude/mcp_settings.json`:
 ```json
 {
   "mcpServers": {
