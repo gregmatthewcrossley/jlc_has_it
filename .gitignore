@@ -53,5 +53,8 @@ dmypy.json
 .env
 .env.*
 
+# API Credentials
+.jlcpcb-credentials.json
+
 # macOS
 .DS_Store
