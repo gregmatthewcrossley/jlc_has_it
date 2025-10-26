@@ -41,11 +41,7 @@ Create or update `~/.claude/mcp_settings.json`:
 }
 ```
 
-### 4. Restart Claude Code
-
-Close and reopen Claude Code to connect to the MCP server.
-
-### 5. Start Using!
+### 4. Start Using!
 
 Open Claude Code at the root of your KiCad project:
 
