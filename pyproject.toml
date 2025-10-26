@@ -78,6 +78,7 @@ select = [
 ]
 ignore = [
     "E501",  # line too long (handled by black)
+    "B008",  # function calls in argument defaults (intentional for Typer)
 ]
 
 [tool.mypy]
