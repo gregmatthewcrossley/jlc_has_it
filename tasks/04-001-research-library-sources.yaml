@@ -4,20 +4,30 @@ title: Research component library sources
 description: |
   Investigate sources for KiCad symbols, footprints, and 3D models.
   Document APIs, download methods, and data formats.
+  PRIMARY source: JLCPCB/EasyEDA via easyeda2kicad.py
+  FALLBACK sources: Ultralibrarian, SnapEDA if JLCPCB lacks files
 dependencies:
   - 00-001
 acceptance_criteria:
   - Document created (docs/library-sources.md)
-  - Ultralibrarian API/download method documented
-  - SnapEDA API/download method documented
-  - Component Search Engine investigated
-  - JLCPCB's own library (if available) documented
+  - easyeda2kicad.py tool documented as primary source
+  - JLCPCB/EasyEDA download method via easyeda2kicad documented
+  - Ultralibrarian API/download method documented (fallback)
+  - SnapEDA API/download method documented (fallback)
+  - Document requirement: only show parts with complete package (symbol + footprint + 3D model)
   - Download formats and conversion needs documented
   - Rate limits and terms of service documented
 estimated_complexity: medium
-status: pending
+status: completed
 notes: |
-  Ultralibrarian: https://www.ultralibrarian.com/
-  SnapEDA: https://www.snapeda.com/
-  May need to convert formats or scrape websites.
-  Check if JLCPCB provides KiCad libraries directly.
+  TESTED: easyeda2kicad.py successfully downloads complete packages from JLCPCB/EasyEDA.
+  Example: `easyeda2kicad --full --lcsc_id=C1525` downloads symbol, footprint, and 3D models.
+  PyPI package: https://pypi.org/project/easyeda2kicad/
+  GitHub: https://github.com/uPesy/easyeda2kicad.py
+
+  FALLBACK sources (if JLCPCB lacks files):
+  - Ultralibrarian: https://www.ultralibrarian.com/
+  - SnapEDA: https://www.snapeda.com/
+
+  CRITICAL: Only show parts to users if we can obtain complete package.
+  Do not show parts if symbols/footprints/3D models are unavailable.

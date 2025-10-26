@@ -1,22 +1,76 @@
 id: 06-004
 phase: 6
-title: Integrate query parser with search
+title: End-to-end MCP integration testing
 description: |
-  Connect query parser to component search so natural language queries
-  work end-to-end in the CLI.
+  Verify complete conversational workflow through MCP server. Test that user
+  can search, refine, and add components through Claude conversation.
 dependencies:
   - 06-002
+  - 04-002
   - 05-002
 acceptance_criteria:
-  - ComponentSearch.search() accepts natural language queries
-  - Automatically parses query and applies filters
-  - `jlc-has-it search "50V 220uF SMD capacitor"` returns relevant results
-  - Shows what was parsed in output (for transparency)
-  - User can override with explicit flags if parsing is wrong
-  - Integration tests verify end-to-end functionality
-estimated_complexity: low
+  - Integration test simulates Claude calling MCP tools
+  - search_components tool works end-to-end:
+    - Takes structured parameters from Claude
+    - Queries jlcparts database
+    - Takes top N candidates (configurable, default 20)
+    - Downloads libraries in parallel
+    - Validates each download (symbol + footprint + 3D model)
+    - Filters out incomplete packages
+    - Returns only validated parts to Claude
+  - add_to_project tool works end-to-end:
+    - Takes lcsc_id and project_path
+    - Copies libraries from cache to project
+    - Updates library tables
+    - Returns success confirmation
+  - get_component_details tool returns full specs
+  - Error handling works for all tools
+  - Test with real MCP client (optional, for manual verification)
+  - Documentation updated with usage examples
+estimated_complexity: medium
 status: pending
 notes: |
-  Glue code between parser and search.
-  Show parsed parameters to user: "Searching for: capacitor, 220uF, >=50V, SMD"
-  Allow manual override: --voltage 50 --capacitance 220uF
+  MCP WORKFLOW INTEGRATION:
+
+  1. User talks to Claude: "I need a through-hole capacitor..."
+  2. Claude calls search_components MCP tool
+  3. MCP server:
+     - Query database (jlcparts SQLite)
+     - Rank and take top N
+     - Download libraries in parallel (easyeda2kicad)
+     - Validate each download
+     - Filter out incomplete
+     - Return validated results to Claude
+  4. Claude presents results conversationally
+  5. User can ask follow-up questions
+  6. User: "Add C12345"
+  7. Claude calls add_to_project MCP tool
+  8. MCP server adds to KiCad project
+  9. Claude confirms completion
+
+  CONVERSATIONAL EXPERIENCE:
+    User: "I need a through-hole capacitor rated for 50V and 220uF"
+
+    Claude: [calls search_components]
+            "I found 12 parts with complete KiCad libraries.
+
+             Top options:
+             1. C12345 - 220uF 50V Electrolytic | Stock: 5000 | $0.15
+             2. C23456 - 220uF 63V Ceramic     | Stock: 3000 | $0.45
+
+             For power supply filtering, the electrolytic is typical.
+             Want me to add it to your project?"
+
+    User: "What's the difference?"
+
+    Claude: "The electrolytic is larger but cheaper..."
+
+    User: "Add C12345"
+
+    Claude: [calls add_to_project]
+            "Added C12345. Refresh KiCad to use it."
+
+  TESTING:
+    - Mock MCP client calling tools
+    - Verify tool responses
+    - Test error scenarios

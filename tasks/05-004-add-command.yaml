@@ -1,6 +1,6 @@
 id: 05-004
 phase: 5
-title: Implement add command
+title: (OPTIONAL) Implement add command
 description: |
   Create 'add' command that searches, lets user select component, downloads
   symbol/footprint/model, and adds to KiCad project.
@@ -18,6 +18,9 @@ acceptance_criteria:
   - Confirms successful addition
   - Has integration test
 estimated_complexity: high
+notes: |
+  OPTIONAL TASK - Phase 1 focuses on MCP server.
+  CLI is provided as optional tool for automation/scripting.
 status: pending
 notes: |
   This is the main user-facing command.

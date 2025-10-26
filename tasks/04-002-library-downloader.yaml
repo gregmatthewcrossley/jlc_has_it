@@ -1,22 +1,91 @@
 id: 04-002
 phase: 4
-title: Implement library source downloader
+title: Implement parallel library downloader
 description: |
-  Create abstraction for downloading symbols/footprints/3D models from
-  various sources (Ultralibrarian, SnapEDA, etc).
+  Download and validate KiCad libraries for multiple components in parallel
+  using easyeda2kicad.py. Used to pre-filter search results to only show
+  parts with complete library packages.
 dependencies:
   - 04-001
 acceptance_criteria:
-  - LibrarySource interface/base class created
-  - UltalibrarianSource implementation
-  - SnapEDASource implementation (if feasible)
-  - download_symbol(), download_footprint(), download_model() methods
-  - Returns file paths or content
-  - Handles missing libraries gracefully
-  - Has tests with mocked downloads
+  - LibraryDownloader class created in jlc_has_it/core/library_downloader.py
+  - download_component(lcsc_id, output_dir) method for single component
+  - download_components_parallel(lcsc_ids, output_dir, max_workers=10) for batch downloads
+  - Uses subprocess to call easyeda2kicad with --full flag
+  - Implements parallel execution using concurrent.futures.ThreadPoolExecutor
+  - Timeout per download: 30 seconds
+  - CRITICAL: Validates all four conditions before returning success:
+    1. Exit code is 0 (no API error)
+    2. Symbol file exists and is non-empty
+    3. Footprint directory exists and contains .kicad_mod file(s)
+    4. 3D model directory exists and contains .step or .wrl file(s)
+  - Returns ComponentLibrary dataclass with file paths if all validations pass
+  - Returns None if any validation fails
+  - Caches validated libraries in /tmp/jlc_has_it/cache/
+  - Progress reporting for parallel downloads (e.g., "15/20 complete")
+  - Provides clear error logging for different failure scenarios
+  - Has tests with mocked easyeda2kicad subprocess calls
+  - Has tests covering all validation failure scenarios
+  - Has tests for parallel download behavior
 estimated_complexity: high
 status: pending
 notes: |
-  May need to handle different file formats and conversions.
-  Some sources might require web scraping.
-  Consider caching downloaded files.
+  PHASE 1 SCOPE: easyeda2kicad.py ONLY (no fallback sources).
+
+  Command: `easyeda2kicad --full --lcsc_id={lcsc_part_number} --output={output_file}`
+
+  Output structure:
+    - {output_dir}/easyeda2kicad.kicad_sym (symbol library)
+    - {output_dir}/easyeda2kicad.pretty/{footprint}.kicad_mod
+    - {output_dir}/easyeda2kicad.3dshapes/{model}.step and .wrl
+
+  CRITICAL FINDING: Exit code 0 does NOT guarantee all files were created!
+  See docs/easyeda2kicad-error-handling.md for full details.
+
+  VALIDATION REQUIREMENTS (MUST implement all):
+    1. Check subprocess exit code is 0
+    2. Check symbol file exists using os.path.exists()
+    3. Check symbol file is non-empty using os.path.getsize() > 0
+    4. Check footprint dir exists and has files using os.listdir()
+    5. Check 3D model dir exists and has .step/.wrl files
+
+  ERROR SCENARIOS:
+    - Exit code 1: Component not found in EasyEDA → return None
+    - Exit code 0 but missing symbol → return None
+    - Exit code 0 but missing footprint → return None
+    - Exit code 0 but missing 3D model → return None
+    - All validations pass → return ComponentLibrary
+
+  WORKFLOW:
+    - Database search returns top N candidates (e.g., N=20)
+    - Download libraries for ALL N candidates in parallel
+    - Validate each download (4 conditions)
+    - Filter out parts with incomplete packages
+    - Show only validated parts to user
+    - User selects from pre-validated list
+    - Copy from cache to project library
+
+  PARALLEL DOWNLOAD IMPLEMENTATION:
+    ```python
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+
+    def download_components_parallel(lcsc_ids, output_dir, max_workers=10):
+        results = {}
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            future_to_lcsc = {
+                executor.submit(download_component, lcsc_id, output_dir): lcsc_id
+                for lcsc_id in lcsc_ids
+            }
+
+            for future in as_completed(future_to_lcsc):
+                lcsc_id = future_to_lcsc[future]
+                try:
+                    result = future.result(timeout=30)
+                    results[lcsc_id] = result
+                except TimeoutError:
+                    results[lcsc_id] = None
+
+        return results
+    ```
+
+  FUTURE: Phase 2+ may add SnapEDA API as fallback source.

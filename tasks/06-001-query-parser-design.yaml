@@ -1,22 +1,53 @@
 id: 06-001
 phase: 6
-title: Design natural language query parser
+title: Design MCP server architecture
 description: |
-  Design the architecture for parsing natural language queries like
-  "50V 220uF SMD capacitor" into structured search parameters.
+  Design the MCP (Model Context Protocol) server architecture for conversational
+  component search through Claude Code/Desktop. No Claude API calls needed - user
+  already in Claude!
 dependencies:
   - 03-001
 acceptance_criteria:
-  - Document created (docs/query-parsing.md) with design
-  - Defines QueryParams dataclass structure
-  - Documents extraction rules for common patterns
-  - Lists example queries and expected parsing
-  - Decides between rules-based vs LLM-based parsing
-  - Defines fallback behavior for unparseable queries
+  - Document created (docs/mcp-architecture.md) ✅ DONE
+  - Defines MCP tool schemas (search_components, add_to_project, etc.)
+  - Documents stdio transport configuration
+  - Defines tool parameter structures
+  - Lists example conversations and tool calls
+  - Documents MCP server configuration for Claude Code
+  - Defines error handling for tool failures
+  - Documents layered architecture (core + MCP + optional CLI)
 estimated_complexity: medium
-status: pending
+status: completed
 notes: |
-  Could use regex patterns, or LLM (Claude/GPT) for parsing.
-  Patterns to extract: value+unit (220uF), voltage (50V), package (SMD, 0805),
-  component type (capacitor, resistor).
-  LLM might be overkill for structured queries.
+  DECISION: Use MCP server with conversational interface through Claude.
+
+  Why MCP:
+  - User already in Claude Code/Desktop (no API calls needed!)
+  - Conversational interface - user can ask questions, refine search
+  - Claude handles NLP natively (better than external API)
+  - Context retention across conversation
+  - Expert advice from Claude on component selection
+
+  Architecture:
+  - Local MCP server runs on user's machine
+  - stdio transport (Claude Code manages subprocess)
+  - Core library is LLM-agnostic
+  - MCP is thin wrapper around core
+
+  MCP Tools:
+  1. search_components(component_type, voltage_min, capacitance, ...)
+  2. get_component_details(lcsc_id)
+  3. add_to_project(lcsc_id, project_path)
+  4. compare_components(lcsc_ids[])
+
+  Configuration (.claude/mcp_settings.json):
+  {
+    "mcpServers": {
+      "jlc-has-it": {
+        "command": "jlc-has-it-mcp",
+        "args": []
+      }
+    }
+  }
+
+  NO Claude API calls needed - simpler and free!

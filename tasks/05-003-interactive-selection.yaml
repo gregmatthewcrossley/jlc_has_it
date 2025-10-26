@@ -1,6 +1,6 @@
 id: 05-003
 phase: 5
-title: Implement interactive component selection
+title: (OPTIONAL) Implement interactive component selection
 description: |
   Add interactive UI for selecting a component from search results using
   arrow keys and enter.
@@ -14,6 +14,9 @@ acceptance_criteria:
   - Returns selected Component object
   - Works in both interactive and non-interactive terminals
 estimated_complexity: medium
+notes: |
+  OPTIONAL TASK - Phase 1 focuses on MCP server.
+  CLI is provided as optional tool for automation/scripting.
 status: pending
 notes: |
   questionary or InquirerPy for nice selection UI.

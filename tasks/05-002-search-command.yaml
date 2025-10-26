@@ -1,22 +1,41 @@
 id: 05-002
 phase: 5
-title: Implement search command
+title: Implement search command (OPTIONAL)
 description: |
-  Create 'search' CLI command that queries JLCPCB and displays results.
+  Create optional 'search' CLI command for non-interactive use.
+  Simple wrapper around core library. Primary interface is MCP.
 dependencies:
   - 05-001
   - 03-001
 acceptance_criteria:
-  - `jlc-has-it search "query"` works
-  - Displays results in a readable table format
-  - Shows key info: part number, description, price, stock, basic/extended
-  - Supports --limit flag to control result count
-  - Supports --type flag to filter by component type
+  - `jlc-has-it search --type capacitor --voltage 50 --capacitance 220uF` works
+  - Uses structured parameters (not natural language - that's what MCP is for)
+  - Displays results in simple table format
+  - Shows: part number, description, price, stock
+  - Supports --limit flag (default 20)
   - Shows "no results found" gracefully
   - Has integration test
-estimated_complexity: medium
+  - Simple implementation - delegates to core library
+estimated_complexity: low
 status: pending
 notes: |
-  Use rich.table for nice output.
-  Consider pagination for many results.
-  Show URL to component page on JLCPCB.
+  OPTIONAL TASK - Phase 1 focuses on MCP.
+
+  Keep it SIMPLE:
+  - No natural language parsing (use MCP/Claude for that)
+  - Structured flags: --type, --voltage, --capacitance, etc.
+  - Basic output (use MCP/Claude for rich conversational output)
+  - Thin wrapper around ComponentSearch().search()
+
+  Example:
+    jlc-has-it search \
+      --type capacitor \
+      --voltage-min 50 \
+      --capacitance 220 \
+      --capacitance-unit uF \
+      --package through-hole
+
+  This is useful for:
+  - Scripts/automation
+  - Testing
+  - Users without Claude Code

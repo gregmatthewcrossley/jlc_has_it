@@ -1,21 +1,41 @@
 id: 03-001
 phase: 3
-title: Implement basic component search
+title: Implement basic component database search
 description: |
-  Create search engine that queries JLCPCB and returns ranked results.
+  Create search engine that queries jlcparts SQLite database and returns ranked
+  candidates. Results will be further filtered by library availability in Phase 4.
 dependencies:
   - 01-002
   - 01-003
 acceptance_criteria:
   - ComponentSearch class created in jlc_has_it/core/search.py
-  - search(query) method accepts text query
-  - Returns list of Component objects
-  - Results sorted by relevance (basic > extended, in stock first)
-  - Can filter by component type (resistor, capacitor, etc)
-  - Has tests with mocked JLCPCB responses
+  - search(params) method accepts structured QueryParams
+  - Queries jlcparts SQLite database
+  - Returns list of Component objects sorted by relevance
+  - Filters by component type, voltage, capacitance, package, etc.
+  - Results sorted by: basic > extended, high stock > low stock, lower price > higher price
+  - Configurable result limit (e.g., return top N=50 candidates)
+  - Has tests with mocked database
 estimated_complexity: medium
 status: pending
 notes: |
-  Start with simple keyword matching.
+  This task focuses on DATABASE SEARCH ONLY.
+  Library availability filtering happens later (task 04-002).
+
+  WORKFLOW CONTEXT:
+  1. [Phase 6] Parse natural language query → QueryParams
+  2. [THIS TASK] Query database with QueryParams → top N candidates
+  3. [Phase 4] Download libraries for candidates → filter by availability
+  4. [Phase 5] Present filtered results to user
+
+  SQL QUERY EXAMPLE:
+    SELECT * FROM components
+    WHERE category = 'Capacitors'
+    AND json_extract(attributes, '$.Capacitance.value') = 220
+    AND json_extract(attributes, '$.Voltage.value') >= 50
+    AND stock > 0
+    ORDER BY basic DESC, stock DESC, price ASC
+    LIMIT 50
+
   Natural language parsing comes in Phase 6.
-  Focus on basic filtering and ranking first.
+  Focus on structured query execution and ranking.

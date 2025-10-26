@@ -1,6 +1,6 @@
 id: 05-005
 phase: 5
-title: Implement configuration management
+title: (OPTIONAL) Implement configuration management
 description: |
   Create config file support for default project paths, API keys,
   preferences. Implement 'config' command to manage settings.
@@ -15,6 +15,9 @@ acceptance_criteria:
   - `jlc-has-it config list` shows all settings
   - Config loads automatically on CLI startup
 estimated_complexity: low
+notes: |
+  OPTIONAL TASK - Phase 1 focuses on MCP server.
+  CLI is provided as optional tool for automation/scripting.
 status: pending
 notes: |
   Use YAML or TOML for config format.

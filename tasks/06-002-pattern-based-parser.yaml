@@ -1,24 +1,86 @@
 id: 06-002
 phase: 6
-title: Implement pattern-based query parser
+title: Implement MCP server and tools
 description: |
-  Create regex-based parser to extract component specs from queries.
-  This is the fast, free fallback option.
+  Create MCP server that provides conversational component search through
+  Claude Code/Desktop. Implements stdio transport and exposes tools.
 dependencies:
   - 06-001
 acceptance_criteria:
-  - QueryParser class created in jlc_has_it/core/nlp.py
-  - Extracts component type (resistor, capacitor, IC, etc)
-  - Extracts values with units (uF, nF, Ohm, kOhm)
-  - Extracts voltage ratings (V, kV)
-  - Extracts package types (SMD, 0805, SOT-23, etc)
-  - Handles variations in spelling/format
-  - Returns QueryParams object
-  - Has extensive tests with example queries
+  - MCP server entry point created (jlc_has_it/mcp/__main__.py)
+  - Uses `mcp` Python SDK from Anthropic
+  - Implements stdio transport
+  - Tool registration and discovery
+  - search_components tool implemented
+  - get_component_details tool implemented
+  - add_to_project tool implemented
+  - compare_components tool (optional Phase 1, required Phase 2)
+  - Tools call core library (not duplicating logic)
+  - Proper error handling and error messages
+  - Returns structured responses to Claude
+  - Has tests with mocked MCP client
+  - Has integration tests with real MCP SDK
+  - Installable entry point: jlc-has-it-mcp
 estimated_complexity: high
 status: pending
 notes: |
-  Regex patterns for common formats.
-  Unit normalization (convert all to base units).
-  Handle ranges: "10-50V", "1uF to 10uF".
-  Be permissive, extract what you can.
+  IMPLEMENTATION APPROACH:
+
+  Use Anthropic's MCP Python SDK:
+    pip install mcp
+
+  Entry point (jlc_has_it/mcp/__main__.py):
+    ```python
+    import asyncio
+    from mcp.server import Server
+    from .tools import register_tools
+
+    async def main():
+        server = Server("jlc-has-it")
+        register_tools(server)
+
+        from mcp.server.stdio import stdio_server
+        async with stdio_server() as streams:
+            await server.run(
+                streams[0],
+                streams[1],
+                server.create_initialization_options()
+            )
+
+    if __name__ == "__main__":
+        asyncio.run(main())
+    ```
+
+  Tool implementation (jlc_has_it/mcp/tools.py):
+    ```python
+    from mcp.server import Server
+    from mcp.types import Tool, TextContent
+    from jlc_has_it.core import ComponentSearch
+
+    def register_tools(server: Server):
+        @server.list_tools()
+        async def list_tools():
+            return [
+                Tool(
+                    name="search_components",
+                    description="Search for JLCPCB components",
+                    inputSchema={...}
+                ),
+                # ... other tools
+            ]
+
+        @server.call_tool()
+        async def call_tool(name: str, arguments: dict):
+            if name == "search_components":
+                search = ComponentSearch()  # Core library
+                results = search.search(**arguments)
+                return [TextContent(type="text", text=json.dumps(results))]
+    ```
+
+  TESTING:
+    - Mock MCP server/client
+    - Test each tool individually
+    - Test error scenarios
+    - Integration test with full MCP stack
+
+  See docs/mcp-architecture.md for complete design.
