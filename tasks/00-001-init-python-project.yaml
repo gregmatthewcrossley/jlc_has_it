@@ -13,7 +13,7 @@ acceptance_criteria:
   - .gitignore created for Python projects
   - Project installable with `pip install -e .`
 estimated_complexity: low
-status: pending
+status: completed
 notes: |
   Use modern Python packaging (pyproject.toml, not setup.py).
   Target Python 3.9+ for compatibility.
