@@ -105,14 +105,159 @@ jlc-has-it search "50v 220uF SMD capacitor"
 jlc-has-it add C12345 --project ./my-kicad-project
 ```
 
+## Requirements
+
+- **Python**: 3.9+
+- **KiCad**: 9.0 (for library format compatibility)
+- **System tools**:
+  - `7z` for multi-part zip extraction: `brew install p7zip` (macOS) or `apt install p7zip-full` (Linux)
+  - `easyeda2kicad` for library downloads: `pip install easyeda2kicad`
+
+## How It Works
+
+### 1. Database Management
+
+JLC Has It maintains a local cache of the jlcparts SQLite database:
+
+```
+~/.cache/jlc_has_it/cache.sqlite3
+```
+
+- **Auto-update**: Database is automatically refreshed if >1 day old
+- **Lazy loading**: Database only downloaded when first needed
+- **Multi-part handling**: Handles large multi-part zip files (100MB+)
+
+### 2. Component Search
+
+When you ask Claude for a component, the MCP server:
+
+1. Queries the local jlcparts SQLite database
+2. Filters by your criteria (voltage, package, manufacturer, etc.)
+3. Ranks results by:
+   - Basic parts first (lower assembly fees at JLCPCB)
+   - Higher stock quantity
+   - Lower price
+4. Returns top matches to Claude for presentation
+
+**Search filters available:**
+- Category (Capacitors, Resistors, ICs, etc.)
+- Subcategory (MLCC, Electrolytic, etc.)
+- Manufacturer (Samsung, Yageo, etc.)
+- Voltage/Current/Capacitance ranges
+- Package type (0402, 0603, 0805, through-hole, etc.)
+- Price limits
+- Stock availability
+
+### 3. Library Download & Integration
+
+When you select a component to add:
+
+1. **easyeda2kicad** downloads from JLCPCB/EasyEDA:
+   - Symbol file (.kicad_sym)
+   - Footprint files (.kicad_mod)
+   - 3D CAD models (.step or .wrl files)
+
+2. **Validation**: Confirms all files are present and non-empty
+
+3. **Project integration**: Copies files to your KiCad project:
+   ```
+   my_project/
+   ├── libraries/
+   │   ├── jlc-components.kicad_sym
+   │   ├── footprints.pretty/
+   │   │   └── [component footprints]
+   │   └── 3d_models/
+   │       └── [component 3D models]
+   ├── sym-lib-table
+   └── fp-lib-table
+   ```
+
+4. **Library registration**: Updates KiCad library tables so the project knows where to find the files
+
+### 4. MCP Tools
+
+The MCP server exposes four tools to Claude:
+
+#### `search_components`
+
+Search for components matching your criteria.
+
+```
+Parameters:
+  query (string): Free-text search (e.g., "100nF ceramic capacitor")
+  category (string): Component category (e.g., "Capacitors")
+  subcategory (string): More specific category
+  manufacturer (string): Filter by manufacturer
+  basic_only (bool): Only show Basic parts (default: true)
+  in_stock_only (bool): Only show in-stock components (default: true)
+  max_price (number): Maximum unit price in USD
+  package (string): Package type (e.g., "0603")
+  limit (integer): Maximum results to return (default: 20)
+
+Returns:
+  - LCSC ID (JLCPCB part number)
+  - Description
+  - Manufacturer and part number
+  - Stock quantity
+  - Unit price
+  - Whether it's a "basic" part
+```
+
+#### `get_component_details`
+
+Get full specifications for a single component.
+
+```
+Parameters:
+  lcsc_id (string, required): JLCPCB part number (e.g., "C1525")
+
+Returns:
+  - All search fields plus:
+  - Complete attribute list (voltage, capacitance, tolerance, etc.)
+  - Price tiers for bulk quantities
+  - Number of pins/joints
+```
+
+#### `add_to_project`
+
+Add a component to your KiCad project.
+
+```
+Parameters:
+  lcsc_id (string, required): JLCPCB part number
+  project_path (string): Path to KiCad project (auto-detected if not provided)
+
+Returns:
+  - Success status
+  - Paths where files were copied
+  - Number of footprints and models added
+  - Message: "Refresh KiCad libraries to use the component"
+```
+
+#### `compare_components`
+
+Compare specifications of multiple parts side-by-side.
+
+```
+Parameters:
+  lcsc_ids (array of strings, required): List of JLCPCB part numbers
+
+Returns:
+  - Component list with basic info
+  - Detailed attribute comparison table
+```
+
 ## Development
 
 ```bash
 # Install with development dependencies
 pip install -e ".[dev,cli]"
 
-# Run tests
+# Run unit tests (104 tests, all passing)
 pytest
+
+# Run integration tests (with real JLCPCB database)
+pytest tests/integration/ -v
 
 # Format code
 black .
@@ -122,24 +267,154 @@ ruff check .
 mypy jlc_has_it/
 ```
 
+### Project Structure
+
+```
+jlc_has_it/
+├── core/                      # Core business logic (LLM-agnostic)
+│   ├── database.py           # jlcparts SQLite access & updates
+│   ├── search.py             # Component search & ranking
+│   ├── models.py             # Data models (Component, PriceTier, etc.)
+│   ├── library_downloader.py # easyeda2kicad integration (parallel)
+│   └── kicad/
+│       └── project.py        # KiCad project file handling
+├── mcp/                       # MCP server (primary interface)
+│   ├── __main__.py           # MCP server implementation
+│   └── tools.py              # Tool implementations
+├── cli/                       # CLI tool (optional, for scripting)
+│   └── main.py
+└── tests/
+    ├── core/                 # Unit tests for core modules
+    ├── integration/          # Integration tests with live data
+    └── conftest.py           # Shared test fixtures
+```
+
+### Testing
+
+**Unit Tests** (104 tests, all mocked):
+- Database management and downloads
+- Component search and filtering
+- Library downloading and validation
+- KiCad project integration
+- Data model parsing
+
+Run with: `pytest tests/core/ tests/test_sample.py -v`
+
+**Integration Tests** (require internet):
+- Real JLCPCB database queries
+- Live easyeda2kicad downloads
+- End-to-end component addition to test projects
+
+Run with: `pytest tests/integration/ -v`
+
+### Common Development Tasks
+
+**Adding a new search filter:**
+1. Update `QueryParams` dataclass in `core/search.py`
+2. Add SQL condition in `ComponentSearch.search()`
+3. Add tests to `tests/core/test_search.py`
+4. Update MCP tool schema in `mcp/__main__.py`
+
+**Debugging component searches:**
+```python
+from jlc_has_it.core.database import DatabaseManager
+from jlc_has_it.core.search import ComponentSearch, QueryParams
+
+db = DatabaseManager()
+conn = db.get_connection()
+search = ComponentSearch(conn)
+
+# Example: Find all 100nF capacitors
+results = search.search(QueryParams(
+    description_contains="100nF",
+    category="Capacitors",
+    in_stock_only=True,
+    limit=10
+))
+
+for comp in results:
+    print(f"{comp.lcsc}: {comp.description} - Stock: {comp.stock}, Price: ${comp.price}")
+```
+
+**Testing library downloads:**
+```python
+from jlc_has_it.core.library_downloader import LibraryDownloader
+
+downloader = LibraryDownloader()
+lib = downloader.download_component("C1525")  # 100nF Samsung capacitor
+
+if lib and lib.is_valid():
+    print(f"Symbol: {lib.symbol_path}")
+    print(f"Footprints: {list(lib.footprint_dir.glob('*.kicad_mod'))}")
+    print(f"3D Models: {list(lib.model_dir.glob('*.step'))}")
+```
+
+## Troubleshooting
+
+### "7z command not found"
+
+Install p7zip for your system:
+- **macOS**: `brew install p7zip`
+- **Ubuntu/Debian**: `apt install p7zip-full`
+- **Fedora/RHEL**: `dnf install p7zip`
+
+### "easyeda2kicad command not found"
+
+Install easyeda2kicad Python package:
+```bash
+pip install easyeda2kicad
+```
+
+### Database download is slow
+
+The first download of the jlcparts database (100MB+) may take several minutes. Subsequent updates only happen if the database is >1 day old. You can check the database age:
+
+```python
+from jlc_has_it.core.database import DatabaseManager
+
+db = DatabaseManager()
+age = db.check_database_age()
+if age:
+    print(f"Database age: {age.total_seconds() / 3600:.1f} hours")
+```
+
+### Component library downloads fail
+
+This usually means easyeda2kicad couldn't find the component at JLCPCB/EasyEDA:
+- Verify the LCSC ID is correct
+- Check that the component exists: https://lcsc.com/search?q=[LCSC_ID]
+- Some newer components may not have complete libraries yet
+
+See more detailed troubleshooting in [docs/troubleshooting.md](docs/troubleshooting.md)
+
 ## Data Sources
 
 **Component data:**
-- jlcparts database by Jan Mrázek (MIT License)
-- https://github.com/yaqwsx/jlcparts
-- Daily-updated SQLite database with all JLCPCB components
+- **jlcparts database** by Jan Mrázek (MIT License)
+- GitHub: https://github.com/yaqwsx/jlcparts
+- Daily-updated SQLite database with 250,000+ JLCPCB components
+- Auto-cached locally at `~/.cache/jlc_has_it/`
 
 **Component libraries:**
-- easyeda2kicad.py by uPesy (AGPLv3)
-- https://github.com/uPesy/easyeda2kicad.py
+- **easyeda2kicad.py** by uPesy (AGPLv3)
+- GitHub: https://github.com/uPesy/easyeda2kicad.py
 - Downloads symbols, footprints, and 3D models from JLCPCB/EasyEDA
+- Requires: `pip install easyeda2kicad`
 
 ## License
 
-MIT License
+MIT License - See LICENSE file for details
 
 ## Attribution
 
-Component data provided by jlcparts (https://github.com/yaqwsx/jlcparts)
-Copyright 2024 Jan Mrázek
-Licensed under the MIT License
+- Component data provided by jlcparts (https://github.com/yaqwsx/jlcparts), Copyright 2024 Jan Mrázek, Licensed under the MIT License
+- Library download functionality uses easyeda2kicad.py (https://github.com/uPesy/easyeda2kicad.py), Licensed under AGPLv3
+
+## Contributing
+
+Contributions welcome! Areas for improvement:
+- Additional search filters (power dissipation, frequency response, etc.)
+- Better ranking algorithm based on user preferences
+- CLI enhancements
+- Documentation improvements
+- Performance optimizations
