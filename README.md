@@ -72,6 +72,31 @@ Then ask Claude Code naturally:
 
 Claude will search JLCPCB, show you results, and can add components directly to your project's library.
 
+### Uninstall
+
+If you installed with pipx, uninstall with:
+
+```bash
+pipx uninstall jlc-has-it
+```
+
+If you installed in development mode, remove the directory and virtualenv:
+
+```bash
+cd /path/to/jlc_has_it
+deactivate  # if in virtualenv
+cd ..
+rm -rf jlc_has_it
+```
+
+To remove the MCP configuration, edit `~/.claude/mcp_settings.json` and remove the `jlc-has-it` server entry, or delete the entire file if it only contained JLC Has It.
+
+To remove the cached database:
+
+```bash
+rm ~/.cache/jlc_has_it/cache.sqlite3
+```
+
 ---
 
 ## Overview
