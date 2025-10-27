@@ -5,6 +5,49 @@ from typing import Any
 
 import pytest
 
+from jlc_has_it.core.database import DatabaseManager
+
+
+@pytest.fixture(scope="session", autouse=True)
+def ensure_database_ready() -> None:
+    """
+    Session-scoped fixture that ensures the jlcparts database is downloaded and ready
+    before any tests run. This is a one-time operation for the entire test session.
+
+    Outputs verbose status so we always know what's happening during the download/check.
+    """
+    db_manager = DatabaseManager()
+
+    print("\n" + "=" * 80)
+    print("TEST SESSION: Ensuring jlcparts database is ready...")
+    print("=" * 80)
+
+    # Check if database exists and is current
+    if not db_manager.get_database_path().exists():
+        print("✓ Database file not found - will download on first use")
+    else:
+        age_hours = db_manager.check_database_age()
+        if age_hours is not None:
+            print(f"✓ Database exists (age: {age_hours:.1f} hours)")
+            if db_manager.needs_update(age_hours):
+                print("  WARNING: Database is >24 hours old, consider updating")
+        else:
+            print("✓ Database file exists")
+
+    # Get connection which will trigger download if needed
+    try:
+        conn = db_manager.get_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT COUNT(*) FROM components")
+        count = cursor.fetchone()[0]
+        print(f"✓ Database is ready with {count:,} components")
+        conn.close()
+    except Exception as e:
+        print(f"✗ ERROR: Failed to initialize database: {e}")
+        raise
+
+    print("=" * 80 + "\n")
+
 
 @pytest.fixture
 def sample_component_data() -> dict[str, Any]:
