@@ -2,11 +2,20 @@
 
 ## Prerequisites
 
-Tests require the project dependencies to be installed:
+### Virtual Environment
+A virtual environment (`.venv`) exists in the project directory and must be activated:
 
 ```bash
 cd /Users/gregmatthewcrossley/Developer/jlc_has_it
 
+# Activate the virtual environment (IMPORTANT!)
+source .venv/bin/activate
+```
+
+### Dependencies
+Tests require the project dependencies to be installed in the virtual environment:
+
+```bash
 # Install project with dev dependencies (recommended)
 pip install -e ".[dev]"
 
@@ -19,8 +28,9 @@ pip install pytest pytest-cov pytest-mock pytest-timeout
 ## Quick Start
 
 ```bash
-# Change to project directory
+# Change to project directory and activate virtual environment
 cd /Users/gregmatthewcrossley/Developer/jlc_has_it
+source .venv/bin/activate
 
 # Run all tests
 pytest tests/ -v
