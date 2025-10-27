@@ -28,9 +28,10 @@ pipx inject jlc-has-it easyeda2kicad
 
 ### 3. Configure Claude Code
 
-Create a `.mcp.json` file in your KiCad project root directory with the following content:
+**Quick setup** (copy-paste this command in your KiCad project folder):
 
-```json
+```bash
+cat > .mcp.json << 'EOF'
 {
   "mcpServers": {
     "jlc-has-it": {
@@ -39,9 +40,10 @@ Create a `.mcp.json` file in your KiCad project root directory with the followin
     }
   }
 }
+EOF
 ```
 
-Save this file as `.mcp.json` (note the dot at the beginning) in your KiCad project folder (the same directory as your `.kicad_pro` file).
+**Or manually**: Create a `.mcp.json` file (note the dot at the beginning) in your KiCad project root directory (same folder as your `.kicad_pro` file) with the content shown above.
 
 **Then**:
 1. Close any running Claude Code instances (Cmd+Q or click Quit)
