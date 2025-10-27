@@ -48,10 +48,14 @@ class ComponentSearch:
             List of Component objects sorted by relevance
         """
         # Build query with JOINs for normalized schema
+        # Extract description from extra JSON since main description column is empty
         query_parts = [
-            "SELECT c.lcsc, c.description, c.mfr, cat.category as category, "
+            "SELECT c.lcsc, "
+            "COALESCE(json_extract(c.extra, '$.description'), c.description) as description, "
+            "c.mfr, cat.category as category, "
             "cat.subcategory, man.name as manufacturer, "
-            "c.basic, c.stock, c.price, c.joints, CAST(NULL AS TEXT) as attributes "
+            "c.basic, c.stock, c.price, c.joints, "
+            "json_extract(c.extra, '$.attributes') as attributes "
             "FROM components c "
             "LEFT JOIN categories cat ON c.category_id = cat.id "
             "LEFT JOIN manufacturers man ON c.manufacturer_id = man.id "
@@ -73,9 +77,11 @@ class ComponentSearch:
             query_args.append(f"%{params.manufacturer}%")
 
         if params.description_contains:
-            # Search in both description and mfr (manufacturer part number)
-            # since description field is often empty in the database
-            query_parts.append("AND (c.description LIKE ? OR c.mfr LIKE ?)")
+            # Search in mfr (manufacturer part number) and description from extra JSON
+            # The main description column is empty; full descriptions are in extra JSON
+            query_parts.append(
+                "AND (c.mfr LIKE ? OR json_extract(c.extra, '$.description') LIKE ?)"
+            )
             query_args.append(f"%{params.description_contains}%")
             query_args.append(f"%{params.description_contains}%")
 
