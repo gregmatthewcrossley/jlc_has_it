@@ -17,13 +17,32 @@ brew install pipx
 
 ### 2. Install JLC Has It
 
+**Option A: Production Installation with pipx** (recommended for end users)
+
+```bash
+git clone https://github.com/gcrossley/jlc_has_it.git
+
+# Install with pipx (clean, isolated installation)
+pipx install ./jlc_has_it
+```
+
+**Option B: Development Installation with pipx** (recommended for developers)
+
+```bash
+git clone https://github.com/gcrossley/jlc_has_it.git
+
+# Install in editable mode with pipx (respects local changes)
+pipx install -e ./jlc_has_it
+```
+
+**Option C: Traditional Virtual Environment**
+
 ```bash
 git clone https://github.com/gcrossley/jlc_has_it.git
 cd jlc_has_it
-
-# Install with pipx (clean, isolated installation)
-pipx install .
-pipx inject jlc-has-it easyeda2kicad
+python3 -m venv .venv
+source .venv/bin/activate  # or `.venv\Scripts\activate` on Windows
+pip install -e .
 ```
 
 ### 3. Configure Claude Code
@@ -66,28 +85,28 @@ Claude will search JLCPCB, show you results, and can add components directly to 
 
 ### Uninstall
 
-If you installed with pipx, uninstall with:
+**If you installed with pipx:**
 
 ```bash
 pipx uninstall jlc-has-it
 ```
 
-If you installed in development mode, remove the directory and virtualenv:
+**If you installed with a traditional virtual environment:**
 
 ```bash
 cd /path/to/jlc_has_it
-deactivate  # if in virtualenv
+deactivate           # Exit the virtual environment
 cd ..
-rm -rf jlc_has_it
+rm -rf jlc_has_it    # Remove the cloned repository
 ```
 
-To remove the MCP configuration from a project, delete the `.mcp.json` file from your KiCad project root:
+**To remove MCP configuration from a project:**
 
 ```bash
-rm .mcp.json
+rm .mcp.json    # Remove from your KiCad project root
 ```
 
-To remove the cached database:
+**To remove cached component database (optional):**
 
 ```bash
 rm ~/.cache/jlc_has_it/cache.sqlite3
@@ -144,16 +163,38 @@ Claude: [calls add_to_project MCP tool]
 
 ## Installation
 
+**With pipx (recommended):**
+
+```bash
+# Clone the repository
+git clone https://github.com/gcrossley/jlc_has_it.git
+
+# Install with pipx (production)
+pipx install ./jlc_has_it
+
+# Or install for development (editable mode)
+pipx install -e ./jlc_has_it
+```
+
+**With pip and virtual environment:**
+
 ```bash
 # Clone the repository
 git clone https://github.com/gcrossley/jlc_has_it.git
 cd jlc_has_it
+
+# Create and activate virtual environment
+python3 -m venv .venv
+source .venv/bin/activate  # or `.venv\Scripts\activate` on Windows
 
 # Install in development mode
 pip install -e .
 
 # Or with CLI support
 pip install -e ".[cli]"
+
+# Exit virtual environment when done
+deactivate
 ```
 
 ## Configuration
@@ -354,8 +395,16 @@ cd jlc_has_it
 **Install for development:**
 
 ```bash
-# Install package with development and CLI dependencies
+# Option 1: Using pipx (recommended - clean isolation)
+pipx install -e ".[dev,cli]"
+
+# Option 2: Using pip and virtual environment
+python3 -m venv .venv
+source .venv/bin/activate
 pip install -e ".[dev,cli]"
+
+# After activation, you can exit the venv with:
+deactivate
 ```
 
 ### Running Tests
@@ -501,6 +550,33 @@ This usually means easyeda2kicad couldn't find the component at JLCPCB/EasyEDA:
 - Verify the LCSC ID is correct
 - Check that the component exists: https://lcsc.com/search?q=[LCSC_ID]
 - Some newer components may not have complete libraries yet
+
+### Reinstalling the MCP Server
+
+If you need to reinstall the MCP server (e.g., to update to a new version):
+
+**With pipx:**
+
+```bash
+# Uninstall the old version
+pipx uninstall jlc-has-it
+
+# Reinstall from the repository
+pipx install -e /path/to/jlc_has_it
+```
+
+**With a virtual environment:**
+
+```bash
+# Exit the virtual environment if active
+deactivate
+
+# Reinstall
+cd /path/to/jlc_has_it
+pip uninstall jlc-has-it -y
+source .venv/bin/activate
+pip install -e .
+```
 
 See more detailed troubleshooting in [docs/troubleshooting.md](docs/troubleshooting.md)
 
