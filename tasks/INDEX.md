@@ -57,19 +57,27 @@ Quick reference for all tasks. See individual YAML files for full details.
 | 06-003 | Implement LLM-based query parser (optional) | Medium | 06-001, 06-002 |
 | 06-004 | Integrate query parser with search | Low | 06-002, 05-002 |
 
-## Phase 7: Performance Optimization (2 tasks)
+## Phase 7: Performance Optimization (2 tasks) ✅
 
 | ID | Title | Complexity | Dependencies |
 |---|---|---|---|
-| 07-001 | Implement FTS5 full-text search indexing | Medium | 03-001 |
-| 07-002 | Implement pagination support | Low | 07-001, 03-001 |
+| 07-001 | Implement FTS5 full-text search indexing | Medium | 03-001 | ✅ COMPLETE |
+| 07-002 | Implement pagination support | Low | 07-001, 03-001 | ✅ COMPLETE |
+
+## Phase 8: Schema Optimization & Advanced Filtering (3 tasks)
+
+| ID | Title | Complexity | Dependencies |
+|---|---|---|---|
+| 08-001 | Optimize database schema with denormalization and indexes | Medium | 07-002 |
+| 08-002 | Implement component package filtering | Low | 08-001 |
+| 08-003 | Implement component attribute filtering | High | 08-001 |
 
 ## Summary
 
-- **Total tasks**: 18 (simplified scope, removed complex KiCad file handling)
-- **Low complexity**: 5 tasks
+- **Total tasks**: 21 (added Phase 8 schema optimization and advanced filtering)
+- **Low complexity**: 7 tasks
 - **Medium complexity**: 12 tasks
-- **High complexity**: 1 task
+- **High complexity**: 2 tasks
 
 ## MVP Milestone
 
@@ -82,7 +90,9 @@ For a minimal viable product, complete these phases:
 - Phase 5: CLI Interface (optional - MCP server ready to use)
 - Phase 6: Natural Language Processing (complete - MCP server fully functional) ✅
 - Phase 7: Performance Optimization (complete - FTS5 + Pagination) ✅
+- Phase 8: Schema Optimization & Advanced Filtering (in progress)
 
-**MVP Status: 7 of 7 phases complete! MVP is FEATURE COMPLETE** ✅
-**Current completion: 7 of 7 phases complete (100%)**
-**Remaining work: Phase 5 CLI interface (optional, non-critical)**
+**MVP Status: 7 of 7 core phases complete! MVP is FEATURE COMPLETE** ✅
+**Current completion: 7 of 7 core phases (100%), Phase 8 optimization (3 tasks in progress)**
+**Priority next: Phase 8 schema optimization to enable fast package & attribute filtering**
+**Remaining work: Phase 5 CLI interface (optional), Phase 8 optimization (recommended)**

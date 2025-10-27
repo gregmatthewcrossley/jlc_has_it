@@ -1,0 +1,89 @@
+id: 08-001
+phase: 8
+title: Optimize database schema with denormalization and indexes
+description: |
+  Add denormalized columns and strategic indexes to dramatically improve query performance
+  for filtering operations. The current schema requires JOINs and LIKE pattern matching
+  on lookup tables, causing full table scans on 7M+ component rows.
+
+  This task adds:
+  1. Denormalized columns (category_name, subcategory_name, manufacturer_name) to components table
+  2. Strategic indexes on frequently-filtered columns (category, subcategory, manufacturer, package)
+  3. Automated schema migration that runs after each database download
+  4. Performance benchmarks showing improvement
+
+  Performance impact:
+  - Category filtering: 18s → <100ms (180x faster)
+  - Package filtering: 18s → <100ms (180x faster)
+  - Manufacturer filtering: 18s → <100ms (180x faster)
+  - Pagination tests: 17-38s → <1s (17-38x faster)
+
+dependencies:
+  - 07-002
+
+acceptance_criteria:
+  - DatabaseManager._optimize_schema() method implemented
+  - Method adds 3 denormalized columns to components table
+  - Columns populated from lookup tables (categories, manufacturers)
+  - Indexes created on category_name, subcategory_name, manufacturer_name, package
+  - Migration is idempotent (safe to run multiple times, skips if already done)
+  - Migration runs automatically in get_connection() after FTS5 initialization
+  - Benchmark shows >100x performance improvement for pagination queries
+  - Existing search API unchanged (backward compatible)
+  - All tests pass, including pagination tests now completing in <1s
+  - Database size increase documented (~5% for denormalized columns)
+
+estimated_complexity: medium
+
+status: pending
+
+notes: |
+  SCHEMA CHANGES:
+  ALTER TABLE components ADD COLUMN category_name TEXT;
+  ALTER TABLE components ADD COLUMN subcategory_name TEXT;
+  ALTER TABLE components ADD COLUMN manufacturer_name TEXT;
+  CREATE INDEX idx_category_name ON components(category_name);
+  CREATE INDEX idx_subcategory_name ON components(subcategory_name);
+  CREATE INDEX idx_manufacturer_name ON components(manufacturer_name);
+  CREATE INDEX idx_package ON components(package);
+
+  QUERY IMPROVEMENT:
+  Before (slow - full table scan):
+    SELECT ... FROM components c
+    LEFT JOIN categories cat ON c.category_id = cat.id
+    WHERE cat.category LIKE '%Capacitors%'  -- No index, 7M rows scanned
+    ORDER BY c.basic DESC, c.stock DESC, price ASC
+    LIMIT 20
+
+  After (fast - indexed lookup):
+    SELECT ... FROM components
+    WHERE category_name = 'Capacitors'  -- Indexed, <100ms
+    ORDER BY basic DESC, stock DESC, price ASC
+    LIMIT 20
+
+  IMPLEMENTATION STEPS:
+  1. Update database.py with _optimize_schema() method
+  2. Call _optimize_schema(conn) in get_connection() after FTS5 init
+  3. Use PRAGMA table_info to check if columns exist (idempotency)
+  4. Use UPDATE with subqueries to populate columns from lookup tables
+  5. Create indexes with IF NOT EXISTS for safety
+  6. Run performance benchmarks before/after
+
+  MIGRATION SAFETY:
+  - Checks if denormalized columns already exist
+  - If they exist, skips migration (safe for daily re-downloads)
+  - Creates indexes with IF NOT EXISTS (SQLite 3.26+)
+  - Wrapped in transaction for atomicity
+  - Logs progress to stdout for visibility
+
+  PERFORMANCE EXPECTATIONS:
+  - Schema optimization: ~5-10 seconds (one-time cost per database download)
+  - Query speedup: 18s → <100ms for typical pagination queries
+  - Index space: ~50-100MB additional storage
+  - No change to original database structure (only additions)
+
+  DATABASE SYNC:
+  - Schema is rebuilt on every database download
+  - Denormalized columns lost, rebuilt from fresh jlcparts data
+  - This is fine since they're derived from lookup tables
+  - Ensures consistency with latest jlcparts data

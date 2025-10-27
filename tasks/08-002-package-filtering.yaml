@@ -1,0 +1,87 @@
+id: 08-002
+phase: 8
+title: Implement component package filtering
+description: |
+  Add package-based filtering to search queries. Package refers to the physical form factor
+  of components (0603, SOT-23, DIP-8, QFP-100, etc). Components already have a dedicated
+  package column in the database, we just need to expose it as a searchable filter.
+
+  This involves:
+  1. Update QueryParams to support package filtering
+  2. Update ComponentSearch.search() to apply package filter
+  3. Update search module documentation with supported packages
+  4. Add comprehensive tests for package filtering
+  5. Update MCP tools to accept package parameter
+  6. Update search ranking to prefer preferred packages
+
+dependencies:
+  - 08-001
+
+acceptance_criteria:
+  - QueryParams.package: Optional[str] field supports filtering by package type
+  - ComponentSearch.search() applies package filter in WHERE clause
+  - Package filter works with other filters (category, manufacturer, stock, price)
+  - Package filter supports:
+    - Exact match: package = '0603'
+    - Prefix match (optional): package LIKE '0603%' (for variant support)
+  - MCP search_components tool accepts package parameter
+  - Tests verify package filtering returns only components with matching package
+  - Tests verify package filtering combines correctly with other filters
+  - Documentation lists common packages (0402, 0603, 0805, 1206, SOT-23, DIP-8, QFP-100, etc)
+  - Performance: package filtering queries complete in <100ms (uses existing index)
+
+estimated_complexity: low
+
+status: pending
+
+notes: |
+  PACKAGES IN DATABASE:
+  - Already stored in components.package column
+  - No need for extraction or denormalization
+  - Examples: 0402, 0603, 0805, 1206 (SMD resistors/caps)
+             SOT-23, SOT-89, TO-220 (transistors/regulators)
+             DIP-8, DIP-16, QFP-100 (ICs)
+             TH (through-hole), TR (tape & reel, SMD)
+
+  IMPLEMENTATION:
+  1. Add to QueryParams dataclass:
+     package: Optional[str] = None
+
+  2. Update ComponentSearch.search() to add condition:
+     if params.package:
+         query_parts.append("AND components.package = ?")
+         query_args.append(params.package)
+
+  3. Create test list of common packages:
+     COMMON_PACKAGES = {
+         "0402": "Tiny SMD resistor/capacitor",
+         "0603": "Small SMD resistor/capacitor",
+         "0805": "Medium SMD resistor/capacitor",
+         "1206": "Large SMD resistor/capacitor",
+         "SOT-23": "3-pin transistor",
+         "SOT-89": "3-pin regulator",
+         "DIP-8": "8-pin IC (through-hole)",
+         "DIP-16": "16-pin IC (through-hole)",
+         "QFP-100": "100-pin IC (surface mount)",
+     }
+
+  4. Update MCP tools.py:
+     def search_components(..., package: Optional[str] = None):
+         params = QueryParams(..., package=package)
+
+  TESTS:
+  - test_search_by_package_exact_match
+  - test_search_by_package_with_category
+  - test_search_by_package_with_stock_filter
+  - test_search_package_returns_only_matching
+  - test_search_package_case_sensitivity
+
+  PERFORMANCE:
+  - Query uses existing package column
+  - Performance: exact match on indexed column = <1ms
+  - Combined filters still fast: category + package + stock = <100ms
+
+  FUTURE ENHANCEMENT:
+  - Package variant support (e.g., "0603*" for all 0603 variants)
+  - Package family search (group similar packages)
+  - Preferred package ranking (some packages more common than others)

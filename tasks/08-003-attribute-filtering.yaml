@@ -1,0 +1,128 @@
+id: 08-003
+phase: 8
+title: Implement component attribute filtering
+description: |
+  Add specification/attribute-based filtering to search queries. Component attributes
+  are stored as JSON in the extra field and vary by component type. Examples include:
+  - Capacitors: Capacitance (100nF), Voltage (50V), Package (0603), Tolerance (±10%)
+  - Resistors: Resistance (1kΩ), Tolerance (±1%), Power (1/4W), Package (0603)
+  - Transistors: Type (NPN), Voltage (50V), Current (100mA), Package (SOT-23)
+
+  This is more complex than category/package filtering because:
+  1. Attributes are stored as JSON with variable structure
+  2. Different component types have different attribute names
+  3. Values may include units (e.g., "100nF", "50V", "1/4W")
+  4. Ranges are needed (voltage 10V-50V, not exact match)
+
+  Implementation approach:
+  1. Parse JSON attributes for common component types
+  2. Support exact-match and range-based filtering
+  3. Handle unit parsing for common electrical specifications
+  4. Provide efficient queries on filtered subset (not on all 7M rows)
+
+dependencies:
+  - 08-001
+
+acceptance_criteria:
+  - QueryParams supports attributes and attribute_ranges for filtering
+  - ComponentSearch.search() applies attribute filters in WHERE clause
+  - Attribute filters work correctly when combined with category/package filters
+  - Support exact-match filtering: {"Voltage": "50V"}
+  - Support range filtering: {"Voltage": {"min": "10V", "max": "100V"}}
+  - JSON extraction works correctly (sqlite3 json_extract)
+  - Tests verify attribute filtering on real database
+  - Performance acceptable for filtered queries (<500ms with multiple conditions)
+  - Common attribute keys documented (Voltage, Capacitance, Resistance, etc)
+  - Error handling for malformed JSON attributes
+
+estimated_complexity: high
+
+status: pending
+
+notes: |
+  ATTRIBUTE DATA STRUCTURE:
+  Stored in components.extra JSON field:
+  {
+    "attributes": {
+      "DC Resistance": "450mΩ",
+      "Impedance @ Frequency": "600Ω@100MHz",
+      "Circuits": "1",
+      "Current Rating": "200mA",
+      "Tolerance": "±25%"
+    }
+  }
+
+  ATTRIBUTE EXAMPLES BY COMPONENT TYPE:
+  Capacitors:
+    - Capacitance (e.g., "100nF", "10µF", "1pF")
+    - Voltage (e.g., "50V", "100V", "600V")
+    - Tolerance (e.g., "±10%", "±5%")
+    - Package (e.g., "0603", "1206")
+    - Temperature Coefficient (e.g., "X7R", "C0G")
+
+  Resistors:
+    - Resistance (e.g., "1kΩ", "10kΩ", "100Ω")
+    - Tolerance (e.g., "±1%", "±5%")
+    - Power (e.g., "1/4W", "1/2W", "1W")
+    - Package (e.g., "0603", "1206")
+
+  Transistors:
+    - Type (e.g., "NPN", "PNP", "N-Channel")
+    - Max Voltage (e.g., "50V", "100V")
+    - Max Current (e.g., "100mA", "1A")
+    - Package (e.g., "SOT-23", "TO-220")
+
+  IMPLEMENTATION STRATEGY:
+  1. Update QueryParams:
+     attributes: Optional[dict[str, Any]] = None  # Exact match
+     attribute_ranges: Optional[dict[str, dict]] = None  # Min/max
+
+  2. In ComponentSearch.search():
+     For exact match:
+       WHERE json_extract(extra, '$.attributes.Voltage') = '50V'
+
+     For range (harder - need unit parsing):
+       Parse "100nF" → 100, unit "nF"
+       Parse min/max in same units
+       Compare numerically
+
+  3. Handle common units:
+     Capacitance: nF, µF, pF, F
+     Resistance: Ω, kΩ, MΩ
+     Voltage: mV, V, kV
+     Current: mA, A
+
+  CHALLENGES:
+  1. JSON extraction in SQLite WHERE clause is slow
+  2. Unit parsing (1kΩ vs 1000Ω) requires preprocessing
+  3. Different attribute names for same property (Voltage vs Max Voltage)
+  4. Some components have sparse attributes
+  5. Query gets complex with multiple attribute filters
+
+  SOLUTION APPROACH:
+  1. First filter by category/package (fast, indexed)
+  2. Then apply attribute filters on subset (JSON extraction on 100 rows, not 7M)
+  3. For common attributes, consider denormalization in future
+  4. Support simple string matching for now (exact "50V", not range)
+
+  TESTS:
+  - test_search_by_attribute_value_exact
+  - test_search_by_attribute_range
+  - test_search_attribute_with_category_filter
+  - test_search_attribute_combined_filters
+  - test_search_attribute_missing_value
+  - test_search_attribute_case_sensitivity
+  - test_search_attribute_unit_variants (optional - future)
+
+  PERFORMANCE NOTES:
+  - JSON filtering slow on full 7M row table
+  - Always combine with indexed filters (category, package) first
+  - Queries: category + package + attribute ~ <500ms
+  - Queries: attribute alone (no category) ~ slow, discourage in docs
+
+  FUTURE ENHANCEMENTS:
+  1. Extract common attributes to denormalized columns
+  2. Unit normalization (1kΩ = 1000Ω)
+  3. Attribute caching for frequently-queried specs
+  4. Attribute suggestion (autocomplete for values)
+  5. Semantic attribute matching (similar to Voltage: 45-55V when user says "~50V")
