@@ -349,7 +349,6 @@ class TestEndToEndSearchPatterns:
 
 
 @pytest.mark.integration
-@pytest.mark.slow
 class TestEndToEndSlowWorkflows:
     """Slow end-to-end tests (marked to skip in quick test runs).
 
