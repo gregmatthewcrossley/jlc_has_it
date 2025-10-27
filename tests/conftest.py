@@ -153,3 +153,14 @@ def pytest_sessionfinish(session: Any, exitstatus: int) -> None:
     print(f"━━━━━━━━━━")
     print(f"  Total:   {_test_counter['total']}")
     print("=" * 80)
+
+    # Write test stats for statusline monitoring
+    from pathlib import Path
+    cache_dir = Path.cwd() / ".pytest_cache"
+    cache_dir.mkdir(exist_ok=True)
+    status_file = cache_dir / "test_status.txt"
+    status_content = f"PASSED:{_test_counter['passed']} FAILED:{_test_counter['failed']} SKIPPED:{_test_counter['skipped']}"
+    try:
+        status_file.write_text(status_content)
+    except Exception:
+        pass  # Silently ignore if we can't write the status file
