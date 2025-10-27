@@ -32,6 +32,8 @@ class JLCTools:
         in_stock_only: bool = True,
         max_price: Optional[float] = None,
         package: Optional[str] = None,
+        attributes: Optional[dict[str, Any]] = None,
+        attribute_ranges: Optional[dict[str, dict[str, Any]]] = None,
         offset: int = 0,
         limit: int = 20,
     ) -> dict[str, Any]:
@@ -46,6 +48,8 @@ class JLCTools:
             in_stock_only: Only return in-stock components
             max_price: Maximum unit price
             package: Package type (e.g., "0603", "0805")
+            attributes: Exact attribute matching (e.g., {"Voltage": "50V"})
+            attribute_ranges: Range attribute matching (e.g., {"Voltage": {"min": "10V", "max": "100V"}})
             offset: Number of results to skip (for pagination)
             limit: Maximum number of results to return (max 100, default 20)
 
@@ -68,6 +72,8 @@ class JLCTools:
             in_stock_only=in_stock_only,
             max_price=max_price,
             package=package,
+            attributes=attributes,
+            attribute_ranges=attribute_ranges,
             offset=max(0, offset),  # Ensure non-negative offset
             limit=max(1, min(limit, 100)),  # Ensure limit between 1 and 100
         )

@@ -398,7 +398,7 @@ class TestComponentSearch:
             in_stock_only=True,
             max_price=0.01,
             limit=50
-            # Note: package and attributes filtering are not yet supported
+            # Note: attributes filtering is not yet supported
         )
         results = search_engine.search(params)
 
@@ -408,3 +408,252 @@ class TestComponentSearch:
             assert component.basic is True
             assert component.stock > 0
             assert component.price <= 0.01
+
+    def test_search_by_package_exact_match(self, search_engine: ComponentSearch) -> None:
+        """Test searching by package type with exact match."""
+        # Get a sample component first to find a real package
+        sample_params = QueryParams(category="Capacitors", in_stock_only=False, limit=10)
+        sample_results = search_engine.search(sample_params)
+
+        if len(sample_results) > 0:
+            sample_package = sample_results[0].package
+            if sample_package:
+                # Now search for this package
+                params = QueryParams(package=sample_package, in_stock_only=False, limit=50)
+                results = search_engine.search(params)
+
+                # All results should have matching package
+                for component in results:
+                    assert component.package == sample_package
+
+    def test_search_by_package_with_category(self, search_engine: ComponentSearch) -> None:
+        """Test package filtering combined with category filter."""
+        # Get a sample component first
+        sample_params = QueryParams(category="Capacitors", in_stock_only=False, limit=10)
+        sample_results = search_engine.search(sample_params)
+
+        if len(sample_results) > 0:
+            sample_package = sample_results[0].package
+            if sample_package:
+                # Search for package within category
+                params = QueryParams(
+                    category="Capacitors",
+                    package=sample_package,
+                    in_stock_only=False,
+                    limit=50
+                )
+                results = search_engine.search(params)
+
+                # All results should match both filters
+                for component in results:
+                    assert component.category == "Capacitors"
+                    assert component.package == sample_package
+
+    def test_search_by_package_with_stock_filter(self, search_engine: ComponentSearch) -> None:
+        """Test package filtering with stock constraints."""
+        # Get a sample component with in-stock items
+        sample_params = QueryParams(category="Capacitors", in_stock_only=True, limit=10)
+        sample_results = search_engine.search(sample_params)
+
+        if len(sample_results) > 0:
+            sample_package = sample_results[0].package
+            if sample_package:
+                # Search for package with min stock requirement
+                params = QueryParams(
+                    package=sample_package,
+                    min_stock=100,
+                    in_stock_only=True,
+                    limit=50
+                )
+                results = search_engine.search(params)
+
+                # All results should have required stock
+                for component in results:
+                    assert component.package == sample_package
+                    assert component.stock >= 100
+
+    def test_search_package_returns_only_matching(self, search_engine: ComponentSearch) -> None:
+        """Test that package filter only returns exact matches."""
+        params = QueryParams(package="0603", in_stock_only=False, limit=50)
+        results = search_engine.search(params)
+
+        # If any results exist, they must all be 0603
+        for component in results:
+            assert component.package == "0603"
+
+    def test_search_nonexistent_package(self, search_engine: ComponentSearch) -> None:
+        """Test searching for a package that doesn't exist."""
+        params = QueryParams(package="NONEXISTENT_PKG_12345", in_stock_only=False)
+        results = search_engine.search(params)
+
+        # Should return empty list, not error
+        assert results == []
+
+    def test_search_package_with_all_filters(self, search_engine: ComponentSearch) -> None:
+        """Test package filtering with all other filters combined."""
+        # Get a real package first
+        sample_params = QueryParams(category="Capacitors", in_stock_only=True, limit=1)
+        sample_results = search_engine.search(sample_params)
+
+        if len(sample_results) > 0:
+            sample_package = sample_results[0].package
+            if sample_package:
+                # Complex query with package + many other filters
+                params = QueryParams(
+                    category="Capacitors",
+                    package=sample_package,
+                    basic_only=False,
+                    in_stock_only=True,
+                    max_price=1.0,
+                    limit=50
+                )
+                results = search_engine.search(params)
+
+                # Verify all filters applied
+                for component in results:
+                    assert component.category == "Capacitors"
+                    assert component.package == sample_package
+                    assert component.stock > 0
+                    assert component.price <= 1.0
+
+    def test_search_by_attribute_value_exact(self, search_engine: ComponentSearch) -> None:
+        """Test searching by exact attribute value."""
+        # Get a component with attributes first
+        sample_params = QueryParams(category="Capacitors", in_stock_only=False, limit=20)
+        sample_results = search_engine.search(sample_params)
+
+        # Find a component with attributes
+        component_with_attrs = None
+        for comp in sample_results:
+            if comp.attributes:
+                component_with_attrs = comp
+                break
+
+        if component_with_attrs:
+            # Get an attribute from this component
+            for attr_name, attr_value in component_with_attrs.attributes.items():
+                # Search for components with this exact attribute
+                params = QueryParams(
+                    attributes={attr_name: attr_value},
+                    in_stock_only=False,
+                    limit=50
+                )
+                results = search_engine.search(params)
+
+                # All results should have this attribute with matching value
+                for component in results:
+                    assert component.get_attribute_value(attr_name) == attr_value
+                break
+
+    def test_search_by_attribute_with_category(self, search_engine: ComponentSearch) -> None:
+        """Test attribute filtering combined with category filter."""
+        # Get a component from a category with attributes
+        sample_params = QueryParams(category="Capacitors", in_stock_only=False, limit=20)
+        sample_results = search_engine.search(sample_params)
+
+        # Find a component with attributes
+        component_with_attrs = None
+        for comp in sample_results:
+            if comp.attributes:
+                component_with_attrs = comp
+                break
+
+        if component_with_attrs:
+            # Get an attribute from this component
+            for attr_name, attr_value in component_with_attrs.attributes.items():
+                # Search for components with this attribute in the same category
+                params = QueryParams(
+                    category="Capacitors",
+                    attributes={attr_name: attr_value},
+                    in_stock_only=False,
+                    limit=50
+                )
+                results = search_engine.search(params)
+
+                # All results should match both filters
+                for component in results:
+                    assert component.category == "Capacitors"
+                    assert component.get_attribute_value(attr_name) == attr_value
+                break
+
+    def test_search_attribute_missing_value(self, search_engine: ComponentSearch) -> None:
+        """Test that components without required attribute are filtered out."""
+        # Search for an unlikely attribute value
+        params = QueryParams(
+            attributes={"SomeRareAttribute": "SomeRareValue"},
+            in_stock_only=False,
+            limit=100
+        )
+        results = search_engine.search(params)
+
+        # Results should be empty or only have components with this attribute
+        for component in results:
+            assert component.get_attribute_value("SomeRareAttribute") == "SomeRareValue"
+
+    def test_search_attribute_multiple_filters(self, search_engine: ComponentSearch) -> None:
+        """Test filtering by multiple attributes at once."""
+        # Get a component with attributes
+        sample_params = QueryParams(category="Capacitors", in_stock_only=False, limit=20)
+        sample_results = search_engine.search(sample_params)
+
+        # Find a component with at least 2 attributes
+        component_with_attrs = None
+        for comp in sample_results:
+            if comp.attributes and len(comp.attributes) >= 2:
+                component_with_attrs = comp
+                break
+
+        if component_with_attrs:
+            # Get two attributes from this component
+            attr_list = list(component_with_attrs.attributes.items())
+            attr1_name, attr1_value = attr_list[0]
+            attr2_name, attr2_value = attr_list[1]
+
+            # Search for components with both attributes
+            params = QueryParams(
+                attributes={
+                    attr1_name: attr1_value,
+                    attr2_name: attr2_value,
+                },
+                in_stock_only=False,
+                limit=50
+            )
+            results = search_engine.search(params)
+
+            # All results should have both attributes with matching values
+            for component in results:
+                assert component.get_attribute_value(attr1_name) == attr1_value
+                assert component.get_attribute_value(attr2_name) == attr2_value
+
+    def test_search_attribute_with_other_filters(self, search_engine: ComponentSearch) -> None:
+        """Test attribute filtering combined with package and stock filters."""
+        # Get a component with attributes
+        sample_params = QueryParams(category="Capacitors", in_stock_only=True, limit=20)
+        sample_results = search_engine.search(sample_params)
+
+        # Find a component with attributes and a package
+        component_with_attrs = None
+        for comp in sample_results:
+            if comp.attributes and comp.package:
+                component_with_attrs = comp
+                break
+
+        if component_with_attrs:
+            # Get an attribute
+            for attr_name, attr_value in component_with_attrs.attributes.items():
+                # Complex search with attributes, package, and stock
+                params = QueryParams(
+                    package=component_with_attrs.package,
+                    attributes={attr_name: attr_value},
+                    in_stock_only=True,
+                    min_stock=50,
+                    limit=50
+                )
+                results = search_engine.search(params)
+
+                # Verify all filters applied
+                for component in results:
+                    assert component.package == component_with_attrs.package
+                    assert component.get_attribute_value(attr_name) == attr_value
+                    assert component.stock >= 50
+                break

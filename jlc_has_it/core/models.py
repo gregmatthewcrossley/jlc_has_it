@@ -52,6 +52,7 @@ class Component:
     stock: int
     price_tiers: list[PriceTier]
     attributes: dict[str, Union[AttributeValue, str]]
+    package: Optional[str] = None  # Physical form factor (e.g., "0603", "SOT-23")
 
     @classmethod
     def from_db_row(cls, row: dict[str, Any]) -> "Component":
@@ -97,6 +98,9 @@ class Component:
                 # Some attributes are just strings (e.g., Package type)
                 attributes[key] = value
 
+        # Get package if available (some database schemas may not include it)
+        package = row.get("package")
+
         return cls(
             lcsc=lcsc_str,
             mfr=row["mfr"],
@@ -109,6 +113,7 @@ class Component:
             stock=int(row["stock"]),
             price_tiers=price_tiers,
             attributes=attributes,
+            package=package,
         )
 
     @property

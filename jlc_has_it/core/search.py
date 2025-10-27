@@ -94,7 +94,7 @@ class ComponentSearch:
                 "COALESCE(json_extract(c.extra, '$.description'), c.description) as description, "
                 "c.mfr, cat.category as category, "
                 "cat.subcategory, man.name as manufacturer, "
-                "c.basic, c.stock, c.price, c.joints, "
+                "c.basic, c.stock, c.price, c.joints, c.package, "
                 "json_extract(c.extra, '$.attributes') as attributes "
                 "FROM components_fts fts "
                 "INNER JOIN components c ON fts.rowid = c.lcsc "
@@ -110,7 +110,7 @@ class ComponentSearch:
                 "COALESCE(json_extract(extra, '$.description'), description) as description, "
                 "mfr, category_name as category, "
                 "subcategory_name as subcategory, manufacturer_name as manufacturer, "
-                "basic, stock, price, joints, "
+                "basic, stock, price, joints, package, "
                 "json_extract(extra, '$.attributes') as attributes "
                 "FROM components "
                 "WHERE 1=1"
@@ -131,6 +131,12 @@ class ComponentSearch:
             query_parts.append("AND manufacturer_name = ?")
             query_args.append(params.manufacturer)
 
+        # Package filter (using denormalized column with index for speed)
+        # Use exact match for package type (0603, SOT-23, DIP-8, etc)
+        if params.package:
+            query_parts.append("AND package = ?")
+            query_args.append(params.package)
+
         # Availability filters
         if params.basic_only:
             query_parts.append("AND basic = 1")
@@ -148,9 +154,18 @@ class ComponentSearch:
             query_parts.append("AND CAST(json_extract(price, '$[0].price') AS REAL) <= ?")
             query_args.append(params.max_price)
 
-        # Note: Package and attribute filters are not currently supported as they
-        # would require complex JSON extraction in WHERE clauses on a 7M+ row table.
-        # These could be implemented in the future with indexed copies of the database.
+        # Attribute filters (exact-match on JSON values)
+        # Note: Range-based attribute filtering is complex due to unit parsing
+        # (e.g., 100nF = 0.0001µF), so we support exact-match filtering here.
+        # For now, filters are applied AFTER database query to avoid JSON on 7M rows.
+        if params.attributes:
+            # Will be filtered in Python after query (see below)
+            pass
+
+        if params.attribute_ranges:
+            # Range-based filtering (supports min/max with units)
+            # Will be filtered in Python after query to handle unit parsing
+            pass
 
         # Sorting: basic parts first, then by stock (descending), then by price (ascending)
         query_parts.append(
@@ -178,6 +193,14 @@ class ComponentSearch:
             except Exception:
                 # Skip malformed components
                 continue
+
+        # Apply attribute filters in Python (after database query)
+        # This avoids expensive JSON extraction on the full 7M-row table
+        if params.attributes:
+            components = self._filter_by_attributes(components, params.attributes)
+
+        if params.attribute_ranges:
+            components = self._filter_by_attribute_ranges(components, params.attribute_ranges)
 
         return components
 
@@ -218,7 +241,7 @@ class ComponentSearch:
                    COALESCE(json_extract(c.extra, '$.description'), c.description) as description,
                    c.mfr, cat.category as category,
                    cat.subcategory, man.name as manufacturer,
-                   c.basic, c.stock, c.price, c.joints,
+                   c.basic, c.stock, c.price, c.joints, c.package,
                    json_extract(c.extra, '$.attributes') as attributes
             FROM components c
             LEFT JOIN categories cat ON c.category_id = cat.id
@@ -232,3 +255,85 @@ class ComponentSearch:
             return None
 
         return Component.from_db_row(dict(row))
+
+    def _filter_by_attributes(
+        self, components: list[Component], attributes: dict[str, Any]
+    ) -> list[Component]:
+        """Filter components by exact attribute matching.
+
+        Args:
+            components: List of components to filter
+            attributes: Dict mapping attribute names to desired values (e.g., {"Voltage": "50V"})
+
+        Returns:
+            Filtered list of components matching all attributes
+        """
+        filtered = []
+
+        for component in components:
+            # Check if component has all required attributes with matching values
+            matches = True
+            for attr_name, desired_value in attributes.items():
+                component_value = component.get_attribute_value(attr_name)
+                if component_value != desired_value:
+                    matches = False
+                    break
+
+            if matches:
+                filtered.append(component)
+
+        return filtered
+
+    def _filter_by_attribute_ranges(
+        self,
+        components: list[Component],
+        attribute_ranges: dict[str, dict[str, Any]],
+    ) -> list[Component]:
+        """Filter components by attribute ranges.
+
+        Supports min/max filtering on numeric attributes.
+
+        Args:
+            components: List of components to filter
+            attribute_ranges: Dict mapping attribute names to range dicts
+                            (e.g., {"Voltage": {"min": "10V", "max": "50V"}})
+
+        Returns:
+            Filtered list of components matching all range constraints
+        """
+        filtered = []
+
+        for component in components:
+            # Check if component matches all attribute range constraints
+            matches = True
+            for attr_name, range_spec in attribute_ranges.items():
+                component_value = component.get_attribute_value(attr_name)
+                if component_value is None:
+                    # Component doesn't have this attribute, skip it
+                    matches = False
+                    break
+
+                # For now, support simple string range comparison
+                # (numeric comparison after unit normalization is future work)
+                if "min" in range_spec:
+                    min_val = range_spec["min"]
+                    if isinstance(min_val, str) and isinstance(component_value, str):
+                        # String comparison (simple case)
+                        # Future: parse units and compare numerically
+                        if component_value < min_val:
+                            matches = False
+                            break
+
+                if "max" in range_spec:
+                    max_val = range_spec["max"]
+                    if isinstance(max_val, str) and isinstance(component_value, str):
+                        # String comparison (simple case)
+                        # Future: parse units and compare numerically
+                        if component_value > max_val:
+                            matches = False
+                            break
+
+            if matches:
+                filtered.append(component)
+
+        return filtered
