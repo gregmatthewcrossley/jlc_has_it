@@ -5,6 +5,7 @@ from dataclasses import dataclass, field
 from typing import Any, Optional
 
 from jlc_has_it.core.models import Component
+from jlc_has_it.core.unit_utils import compare_values
 
 
 @dataclass
@@ -289,9 +290,13 @@ class ComponentSearch:
         components: list[Component],
         attribute_ranges: dict[str, dict[str, Any]],
     ) -> list[Component]:
-        """Filter components by attribute ranges.
+        """Filter components by attribute ranges with unit normalization.
 
-        Supports min/max filtering on numeric attributes.
+        Supports min/max filtering on numeric attributes with automatic unit conversion.
+        Examples:
+        - {"Capacitance": {"min": "100nF", "max": "1uF"}}
+        - {"Voltage": {"min": "10V", "max": "50V"}}
+        - {"Resistance": {"min": "1kΩ", "max": "100kΩ"}}
 
         Args:
             components: List of components to filter
@@ -313,25 +318,28 @@ class ComponentSearch:
                     matches = False
                     break
 
-                # For now, support simple string range comparison
-                # (numeric comparison after unit normalization is future work)
-                if "min" in range_spec:
-                    min_val = range_spec["min"]
-                    if isinstance(min_val, str) and isinstance(component_value, str):
-                        # String comparison (simple case)
-                        # Future: parse units and compare numerically
-                        if component_value < min_val:
-                            matches = False
-                            break
+                # Convert component value to string for unit-aware comparison
+                component_value_str = str(component_value)
 
+                # Check minimum constraint with unit normalization
+                if "min" in range_spec:
+                    min_val = str(range_spec["min"])
+                    # Use unit-aware comparison (handles "100nF" vs "0.1uF", etc.)
+                    comparison = compare_values(component_value_str, min_val)
+                    if comparison is not None and comparison < 0:
+                        # component_value < min_val, doesn't match
+                        matches = False
+                        break
+
+                # Check maximum constraint with unit normalization
                 if "max" in range_spec:
-                    max_val = range_spec["max"]
-                    if isinstance(max_val, str) and isinstance(component_value, str):
-                        # String comparison (simple case)
-                        # Future: parse units and compare numerically
-                        if component_value > max_val:
-                            matches = False
-                            break
+                    max_val = str(range_spec["max"])
+                    # Use unit-aware comparison (handles "100nF" vs "0.1uF", etc.)
+                    comparison = compare_values(component_value_str, max_val)
+                    if comparison is not None and comparison > 0:
+                        # component_value > max_val, doesn't match
+                        matches = False
+                        break
 
             if matches:
                 filtered.append(component)
