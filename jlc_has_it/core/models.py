@@ -54,25 +54,34 @@ class Component:
 
         Args:
             row: Dictionary from sqlite3.Row (with row_factory = sqlite3.Row)
-                 Expected keys: lcsc, mfr, description, manufacturer, category,
+                 Expected keys: lcsc (int), mfr, description, manufacturer, category,
                  subcategory, joints, basic, stock, price (JSON string),
-                 attributes (JSON string)
+                 attributes (optional JSON string)
 
         Returns:
             Component instance
         """
         import json
 
+        # Convert LCSC ID: integer to "C" prefixed format
+        lcsc_value = row["lcsc"]
+        if isinstance(lcsc_value, int):
+            lcsc_str = f"C{lcsc_value}"
+        else:
+            lcsc_str = str(lcsc_value)
+
         # Parse price tiers from JSON
         price_data = json.loads(row["price"]) if isinstance(row["price"], str) else row["price"]
         price_tiers = [PriceTier.from_dict(tier) for tier in price_data]
 
-        # Parse attributes from JSON
-        attrs_data = (
-            json.loads(row["attributes"])
-            if isinstance(row["attributes"], str)
-            else row["attributes"]
-        )
+        # Parse attributes from JSON (or use empty dict if None)
+        attrs_raw = row.get("attributes")
+        if attrs_raw is None or attrs_raw == "":
+            attrs_data = {}
+        elif isinstance(attrs_raw, str):
+            attrs_data = json.loads(attrs_raw)
+        else:
+            attrs_data = attrs_raw
 
         # Convert attribute values to AttributeValue objects
         attributes: dict[str, Union[AttributeValue, str]] = {}
@@ -84,7 +93,7 @@ class Component:
                 attributes[key] = value
 
         return cls(
-            lcsc=row["lcsc"],
+            lcsc=lcsc_str,
             mfr=row["mfr"],
             description=row["description"],
             manufacturer=row["manufacturer"],

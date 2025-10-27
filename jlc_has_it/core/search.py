@@ -47,77 +47,65 @@ class ComponentSearch:
         Returns:
             List of Component objects sorted by relevance
         """
-        query_parts = ["SELECT * FROM components WHERE 1=1"]
+        # Build query with JOINs for normalized schema
+        query_parts = [
+            "SELECT c.lcsc, c.description, c.mfr, cat.name as category, "
+            "CAST(NULL AS TEXT) as subcategory, mfr.name as manufacturer, "
+            "c.basic, c.stock, c.price, c.joints, CAST(NULL AS TEXT) as attributes "
+            "FROM components c "
+            "LEFT JOIN categories cat ON c.category_id = cat.id "
+            "LEFT JOIN manufacturers mfr ON c.manufacturer_id = mfr.id "
+            "WHERE 1=1"
+        ]
         query_args: list[Any] = []
 
         # Category filters
         if params.category:
-            query_parts.append("AND category = ?")
-            query_args.append(params.category)
+            query_parts.append("AND cat.name LIKE ?")
+            query_args.append(f"%{params.category}%")
 
         if params.subcategory:
-            query_parts.append("AND subcategory = ?")
-            query_args.append(params.subcategory)
+            # Subcategory not available in normalized schema, skip for now
+            pass
 
         if params.manufacturer:
-            query_parts.append("AND manufacturer LIKE ?")
+            query_parts.append("AND mfr.name LIKE ?")
             query_args.append(f"%{params.manufacturer}%")
 
         if params.description_contains:
-            query_parts.append("AND description LIKE ?")
+            query_parts.append("AND c.description LIKE ?")
             query_args.append(f"%{params.description_contains}%")
 
         # Availability filters
         if params.basic_only:
-            query_parts.append("AND basic = 1")
+            query_parts.append("AND c.basic = 1")
 
         if params.in_stock_only:
-            query_parts.append("AND stock > 0")
+            query_parts.append("AND c.stock > 0")
 
         if params.min_stock > 0:
-            query_parts.append("AND stock >= ?")
+            query_parts.append("AND c.stock >= ?")
             query_args.append(params.min_stock)
 
         # Price filter (check first price tier)
         if params.max_price is not None:
             # Price is stored as JSON array, extract first tier's price
-            query_parts.append("AND CAST(json_extract(price, '$[0].price') AS REAL) <= ?")
+            query_parts.append("AND CAST(json_extract(c.price, '$[0].price') AS REAL) <= ?")
             query_args.append(params.max_price)
 
-        # Package filter (stored in attributes JSON)
+        # Package filter (direct column in normalized schema)
         if params.package:
-            query_parts.append(
-                "AND (json_extract(attributes, '$.Package') = ? OR "
-                "json_extract(attributes, '$.\"Package/Case\"') = ?)"
-            )
-            query_args.append(params.package)
+            query_parts.append("AND c.package = ?")
             query_args.append(params.package)
 
-        # Exact attribute value filters
-        if params.attributes:
-            for attr_name, attr_value in params.attributes.items():
-                # Try to match against value field in nested object
-                query_parts.append(f"AND json_extract(attributes, '$.{attr_name}.value') = ?")
-                query_args.append(attr_value)
-
-        # Attribute range filters
-        if params.attribute_ranges:
-            for attr_name, range_spec in params.attribute_ranges.items():
-                if "min" in range_spec:
-                    query_parts.append(
-                        f"AND CAST(json_extract(attributes, '$.{attr_name}.value') AS REAL) >= ?"
-                    )
-                    query_args.append(range_spec["min"])
-                if "max" in range_spec:
-                    query_parts.append(
-                        f"AND CAST(json_extract(attributes, '$.{attr_name}.value') AS REAL) <= ?"
-                    )
-                    query_args.append(range_spec["max"])
+        # Note: Attribute filters (params.attributes, params.attribute_ranges) are not
+        # supported in the real jlcparts database schema, which doesn't have an attributes column.
+        # These would need to be extracted from the extra/datasheet fields if needed in the future.
 
         # Sorting: basic parts first, then by stock (descending), then by price (ascending)
         query_parts.append(
-            "ORDER BY basic DESC, stock DESC, "
-            "CAST(json_extract(price, '$[0].price') AS REAL) ASC"
+            "ORDER BY c.basic DESC, c.stock DESC, "
+            "CAST(json_extract(c.price, '$[0].price') AS REAL) ASC"
         )
 
         # Limit results
