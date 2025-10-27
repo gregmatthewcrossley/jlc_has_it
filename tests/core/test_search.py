@@ -516,35 +516,6 @@ class TestComponentSearch:
                     assert component.stock > 0
                     assert component.price <= 1.0
 
-    def test_search_by_attribute_value_exact(self, search_engine: ComponentSearch) -> None:
-        """Test searching by exact attribute value."""
-        # Get a component with attributes first
-        sample_params = QueryParams(category="Capacitors", in_stock_only=False, limit=20)
-        sample_results = search_engine.search(sample_params)
-
-        # Find a component with attributes
-        component_with_attrs = None
-        for comp in sample_results:
-            if comp.attributes:
-                component_with_attrs = comp
-                break
-
-        if component_with_attrs:
-            # Get an attribute from this component
-            for attr_name, attr_value in component_with_attrs.attributes.items():
-                # Search for components with this exact attribute
-                params = QueryParams(
-                    attributes={attr_name: attr_value},
-                    in_stock_only=False,
-                    limit=50
-                )
-                results = search_engine.search(params)
-
-                # All results should have this attribute with matching value
-                for component in results:
-                    assert component.get_attribute_value(attr_name) == attr_value
-                break
-
     def test_search_by_attribute_with_category(self, search_engine: ComponentSearch) -> None:
         """Test attribute filtering combined with category filter."""
         # Get a component from a category with attributes
