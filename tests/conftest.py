@@ -8,28 +8,34 @@ import pytest
 
 @pytest.fixture
 def sample_component_data() -> dict[str, Any]:
-    """Sample component data for testing."""
+    """Sample component data for testing (using real jlcparts database schema)."""
     return {
-        "lcsc": "C12345",
+        "lcsc": 12345,  # Real database stores as integer
         "mfr": "TEST-PART-001",
-        "description": "Test Component 100nF 50V X7R 0402",
+        "description": "",  # Empty in real database, full description in extra JSON
         "manufacturer": "Test Manufacturer",
-        "category": "Capacitors",
+        "category_id": 1,  # Real database uses foreign keys
+        "category": "Capacitors",  # These are computed from JOINs in queries
         "subcategory": "Multilayer Ceramic Capacitors MLCC - SMD/SMT",
+        "manufacturer_id": 1,  # Real database uses foreign keys
         "joints": 2,
         "basic": True,
         "stock": 5000,
         "price": [
-            {"qty": 1, "price": 0.0012},
-            {"qty": 10, "price": 0.0010},
-            {"qty": 100, "price": 0.0008},
+            {"qFrom": 1, "price": 0.0012},  # Real database uses qFrom/qTo format
+            {"qFrom": 10, "price": 0.0010},
+            {"qFrom": 100, "price": 0.0008},
         ],
-        "attributes": {
-            "Capacitance": {"value": 100, "unit": "nF"},
-            "Voltage": {"value": 50, "unit": "V"},
-            "Tolerance": {"value": 10, "unit": "%"},
-            "Package": "0402",
-            "Temperature Coefficient": "X7R",
+        "attributes": None,  # Real database has attributes in extra JSON
+        "extra": {
+            "description": "Test Component 100nF 50V X7R 0402",
+            "attributes": {
+                "Capacitance": {"value": 100, "unit": "nF"},
+                "Voltage": {"value": 50, "unit": "V"},
+                "Tolerance": {"value": 10, "unit": "%"},
+                "Package": "0402",
+                "Temperature Coefficient": "X7R",
+            },
         },
     }
 

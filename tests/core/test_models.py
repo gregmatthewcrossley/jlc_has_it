@@ -11,14 +11,14 @@ class TestPriceTier:
     """Tests for PriceTier model."""
 
     def test_from_dict(self) -> None:
-        """Test creating PriceTier from dictionary."""
-        tier = PriceTier.from_dict({"qty": 10, "price": 0.0012})
+        """Test creating PriceTier from dictionary (real database format)."""
+        tier = PriceTier.from_dict({"qFrom": 10, "price": 0.0012})
         assert tier.qty == 10
         assert tier.price == 0.0012
 
     def test_from_dict_with_string_values(self) -> None:
-        """Test creating PriceTier with string values."""
-        tier = PriceTier.from_dict({"qty": "100", "price": "0.0008"})
+        """Test creating PriceTier with string values (real database format)."""
+        tier = PriceTier.from_dict({"qFrom": "100", "price": "0.0008"})
         assert tier.qty == 100
         assert tier.price == 0.0008
 
@@ -56,11 +56,11 @@ class TestComponent:
 
     @pytest.fixture
     def sample_db_row(self) -> dict[str, object]:
-        """Sample database row as dictionary."""
+        """Sample database row as dictionary (real jlcparts database format)."""
         return {
-            "lcsc": "C12345",
+            "lcsc": 12345,  # Real database stores as integer
             "mfr": "TEST-PART-001",
-            "description": "Test Component 100nF 50V X7R 0402",
+            "description": "",  # Empty in real database
             "manufacturer": "Test Manufacturer",
             "category": "Capacitors",
             "subcategory": "Multilayer Ceramic Capacitors MLCC - SMD/SMT",
@@ -69,9 +69,9 @@ class TestComponent:
             "stock": 5000,
             "price": json.dumps(
                 [
-                    {"qty": 1, "price": 0.0012},
-                    {"qty": 10, "price": 0.0010},
-                    {"qty": 100, "price": 0.0008},
+                    {"qFrom": 1, "price": 0.0012},  # Real database uses qFrom
+                    {"qFrom": 10, "price": 0.0010},
+                    {"qFrom": 100, "price": 0.0008},
                 ]
             ),
             "attributes": json.dumps(
@@ -89,9 +89,11 @@ class TestComponent:
         """Test creating Component from database row."""
         component = Component.from_db_row(sample_db_row)
 
+        # LCSC ID is converted from integer to "C" prefix format
         assert component.lcsc == "C12345"
         assert component.mfr == "TEST-PART-001"
-        assert component.description == "Test Component 100nF 50V X7R 0402"
+        # Description comes from the row (empty in real database, but populated in test)
+        assert component.description == ""
         assert component.manufacturer == "Test Manufacturer"
         assert component.category == "Capacitors"
         assert component.subcategory == "Multilayer Ceramic Capacitors MLCC - SMD/SMT"

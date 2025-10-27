@@ -1,18 +1,11 @@
 """End-to-end integration tests simulating real user workflows.
 
-NOTE: These tests are marked as expected-to-fail because the real jlcparts database
-has a different schema than our code expects. The database uses:
+These tests exercise the complete system with the real jlcparts database.
+The core modules have been updated to handle the actual database schema:
 - Normalized tables (components, categories, manufacturers)
-- Integer LCSC IDs stored as integers
-- Foreign keys instead of denormalized columns
-
-The unit tests (tests/core/) use mocked data with the expected schema and pass.
-These integration tests document what a real implementation would need to handle.
-
-To work with the real database, the core search module would need refactoring to:
-1. Join with lookup tables (categories, manufacturers)
-2. Convert between integer and string LCSC IDs
-3. Handle the actual column names in the database
+- Integer LCSC IDs stored as integers (converted to "C" prefix format)
+- Foreign keys properly joined in queries
+- Attributes extracted from JSON extra field
 
 Run with: pytest tests/integration/test_end_to_end.py -v -s
 """
@@ -29,7 +22,6 @@ from jlc_has_it.mcp.tools import JLCTools
 
 
 @pytest.mark.integration
-@pytest.mark.xfail(reason="Real database schema differs from expected schema")
 class TestEndToEndComponentSearch:
     """End-to-end tests for component search workflows."""
 

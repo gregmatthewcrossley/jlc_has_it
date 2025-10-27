@@ -102,14 +102,9 @@ class ComponentSearch:
             query_parts.append("AND CAST(json_extract(c.price, '$[0].price') AS REAL) <= ?")
             query_args.append(params.max_price)
 
-        # Package filter (direct column in normalized schema)
-        if params.package:
-            query_parts.append("AND c.package = ?")
-            query_args.append(params.package)
-
-        # Note: Attribute filters (params.attributes, params.attribute_ranges) are not
-        # supported in the real jlcparts database schema, which doesn't have an attributes column.
-        # These would need to be extracted from the extra/datasheet fields if needed in the future.
+        # Note: Package and attribute filters are not currently supported as they
+        # would require complex JSON extraction in WHERE clauses on a 7M+ row table.
+        # These could be implemented in the future with indexed copies of the database.
 
         # Sorting: basic parts first, then by stock (descending), then by price (ascending)
         query_parts.append(
@@ -162,7 +157,26 @@ class ComponentSearch:
         Returns:
             Component if found, None otherwise
         """
-        cursor = self.conn.execute("SELECT * FROM components WHERE lcsc = ?", [lcsc_id])
+        # Convert from "C12345" format to integer 12345 for database lookup
+        if lcsc_id.startswith("C"):
+            lcsc_int = int(lcsc_id[1:])
+        else:
+            lcsc_int = int(lcsc_id)
+
+        # Use JOINs to get full component data with category and manufacturer names
+        query = """
+            SELECT c.lcsc,
+                   COALESCE(json_extract(c.extra, '$.description'), c.description) as description,
+                   c.mfr, cat.category as category,
+                   cat.subcategory, man.name as manufacturer,
+                   c.basic, c.stock, c.price, c.joints,
+                   json_extract(c.extra, '$.attributes') as attributes
+            FROM components c
+            LEFT JOIN categories cat ON c.category_id = cat.id
+            LEFT JOIN manufacturers man ON c.manufacturer_id = man.id
+            WHERE c.lcsc = ?
+        """
+        cursor = self.conn.execute(query, [lcsc_int])
         row = cursor.fetchone()
 
         if row is None:

@@ -1,16 +1,13 @@
 """Integration tests with real JLCPCB database.
 
-NOTE: The real jlcparts database from yaqwsx.github.io has a different schema than
-our code expects. The database uses:
+These tests verify functionality with the actual jlcparts database schema:
 - Normalized tables (components, categories, manufacturers)
-- Integer LCSC IDs stored as integers (not text like "C1525")
-- Foreign keys (category_id, manufacturer_id) instead of denormalized columns
+- Integer LCSC IDs stored as integers (converted to "C" prefix format)
+- Foreign keys (category_id, manufacturer_id) properly handled via JOINs
+- Component specs extracted from JSON extra field
 
-These tests are marked as expected to fail and serve as documentation of the
-actual database schema. To work with the real database, the core search module
-would need refactoring to handle the actual schema.
-
-For now, the unit tests (tests/core/) use mocked data with the expected schema.
+The core modules have been refactored to work with the real database schema.
+Unit tests (tests/core/) use mocked data while integration tests verify real data.
 
 Run with: pytest tests/integration/test_real_database.py -v -s
 """
@@ -23,7 +20,6 @@ import pytest
 from jlc_has_it.core.database import DatabaseManager
 
 
-@pytest.mark.xfail(reason="Real database has different schema than code expects")
 class TestRealDatabaseSchema:
     """Tests documenting actual JLCPCB database schema."""
 
