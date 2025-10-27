@@ -1,0 +1,32 @@
+id: 04-001
+phase: 4
+title: Integrate library downloader (easyeda2kicad)
+description: |
+  Wrap the existing easyeda2kicad Python tool to download symbols, footprints,
+  and 3D models from JLCPCB/EasyEDA for components by LCSC ID.
+
+  This task integrates an existing, well-maintained tool rather than building
+  from scratch. The tool handles:
+  - Downloading component data from EasyEDA
+  - Converting to KiCad format
+  - Organizing output into symbol, footprint, and 3D model directories
+
+dependencies:
+  - 00-001
+
+acceptance_criteria:
+  - easyeda2kicad is declared as a dependency in pyproject.toml
+  - Can call easyeda2kicad as subprocess or Python library
+  - Returns path to downloaded library files
+  - Handles errors gracefully (network issues, invalid LCSC ID, conversion failures)
+  - Can download multiple components in parallel
+  - Returns download status/results
+  - Tests verify downloading works
+
+estimated_complexity: medium
+status: pending
+notes: |
+  easyeda2kicad is published on PyPI.
+  Documentation: https://github.com/uPesy/easyeda2kicad.py
+  Can use subprocess for CLI access or import as library.
+  Consider parallelizing downloads for multiple components.

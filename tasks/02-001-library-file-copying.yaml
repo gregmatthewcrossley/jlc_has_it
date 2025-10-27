@@ -1,0 +1,32 @@
+id: 02-001
+phase: 2
+title: Implement library file copying to KiCad projects
+description: |
+  Implement simple file copying functionality to add downloaded symbol files,
+  footprints, and 3D models to KiCad project libraries.
+
+  This replaces complex S-expression parsing with straightforward file operations:
+  - Copy .kicad_sym files to project's symbol library
+  - Copy .kicad_mod files to project's footprints.pretty/ directory
+  - Copy .step/.wrl files to project's 3d_models/ directory
+  - Create directories if needed
+  - Update library tables if needed (or user does manually)
+
+dependencies:
+  - 00-001
+
+acceptance_criteria:
+  - Can copy symbol files to project directory
+  - Can copy footprint files to project directory
+  - Can copy 3D model files to project directory
+  - Creates necessary directories if they don't exist
+  - Handles errors gracefully (missing files, permission issues)
+  - Function available for MCP tools to use
+  - Basic tests for file operations
+
+estimated_complexity: low
+status: pending
+notes: |
+  This is a simple wrapper around shutil.copy().
+  No need to parse or validate KiCad file contents.
+  Library discovery can be manual or via easyeda2kicad output.
