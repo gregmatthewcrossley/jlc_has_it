@@ -2,6 +2,7 @@
 
 from pathlib import Path
 from typing import Any
+import sqlite3
 
 import pytest
 
@@ -9,49 +10,87 @@ from jlc_has_it.core.database import DatabaseManager
 
 
 # Track test progress for verbose output
-_test_counter = {"passed": 0, "failed": 0, "error": 0, "skipped": 0, "total": 0}
+_test_counter = {"passed": 0, "failed": 0, "error": 0, "skipped": 0, "total": 0, "collected": 0}
+
+# Path to test-specific database (isolated from user's cache)
+TEST_DB_PATH: Path = Path.cwd() / "test_data" / "cache.sqlite3"
 
 
 @pytest.fixture(scope="session", autouse=True)
 def ensure_database_ready() -> None:
     """
-    Session-scoped fixture that ensures the jlcparts database is downloaded and ready
-    before any tests run. This is a one-time operation for the entire test session.
+    Session-scoped fixture that verifies the test database is ready.
 
-    Outputs verbose status so we always know what's happening during the download/check.
+    This fixture expects the test database to be pre-downloaded and optimized
+    using: python scripts/setup_test_database.py
+
+    The separation allows long-running setup (30-60 minutes) to happen outside
+    of pytest, avoiding timeout and lock contention issues.
     """
-    db_manager = DatabaseManager()
+    # Use test-specific database directory
+    db_manager = DatabaseManager(cache_dir=TEST_DB_PATH.parent)
 
     print("\n" + "=" * 80)
-    print("TEST SESSION: Ensuring jlcparts database is ready...")
+    print("TEST SESSION: Verifying test database is ready...")
+    print(f"Database: {db_manager.database_path}")
     print("=" * 80)
 
-    # Check if database exists and is current
+    # Database must exist - if not, tell user to run setup script
     if not db_manager.database_path.exists():
-        print("✓ Database file not found - will download on first use")
-    else:
-        age_timedelta = db_manager.check_database_age()
-        if age_timedelta is not None:
-            age_hours = age_timedelta.total_seconds() / 3600
-            print(f"✓ Database exists (age: {age_hours:.1f} hours)")
-            if db_manager.needs_update():
-                print("  WARNING: Database is >24 hours old, consider updating")
-        else:
-            print("✓ Database file exists")
+        print("\n✗ ERROR: Test database not found!")
+        print(f"\nPlease set up the test database first by running:")
+        print(f"  python scripts/setup_test_database.py")
+        print(f"\nThis downloads and optimizes the jlcparts database.")
+        print(f"First run takes 30-60 minutes. Subsequent runs skip setup.\n")
+        raise FileNotFoundError(
+            f"Test database not found at {db_manager.database_path}. "
+            "Run 'python scripts/setup_test_database.py' to set it up."
+        )
 
-    # Get connection which will trigger download if needed
+    # Get connection to verify database is ready
     try:
-        conn = db_manager.get_connection()
+        conn = db_manager.get_connection(enable_fts5=True)
         cursor = conn.cursor()
         cursor.execute("SELECT COUNT(*) FROM components")
         count = cursor.fetchone()[0]
-        print(f"✓ Database is ready with {count:,} components")
+
+        # Verify optimization is complete
+        cursor.execute("PRAGMA table_info(components)")
+        columns = {row[1] for row in cursor.fetchall()}
+        has_denormalized = "category_name" in columns
+
+        # Verify FTS5 is initialized
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='components_fts'")
+        has_fts5 = cursor.fetchone() is not None
+
+        print(f"✓ Database ready with {count:,} components")
+        print(f"  Schema optimization: {'✓ yes' if has_denormalized else '✗ no'}")
+        print(f"  FTS5 indexing: {'✓ yes' if has_fts5 else '✗ no'}")
         conn.close()
     except Exception as e:
-        print(f"✗ ERROR: Failed to initialize database: {e}")
+        print(f"✗ ERROR: Failed to verify database: {e}")
         raise
 
     print("=" * 80 + "\n")
+
+
+@pytest.fixture
+def test_database_connection() -> sqlite3.Connection:
+    """
+    Fixture providing a connection to the test database.
+    Uses the same database prepared by ensure_database_ready().
+    """
+    db_manager = DatabaseManager(cache_dir=TEST_DB_PATH.parent)
+    conn = db_manager.get_connection(enable_fts5=True)
+    conn.row_factory = sqlite3.Row
+    yield conn
+    conn.close()
+
+
+def pytest_collection_finish(session: Any) -> None:
+  """Hook called after test collection is finished."""
+  # Record the total number of collected tests for statusline display
+  _test_counter["collected"] = len(session.items)
 
 
 @pytest.fixture
@@ -141,6 +180,16 @@ def pytest_runtest_logreport(report: Any) -> None:
         total = _test_counter["total"]
         print(f"\n[{total:3d}] {status} {test_name}")
 
+        # Write status file for live statusline monitoring
+        cache_dir = Path.cwd() / ".pytest_cache"
+        cache_dir.mkdir(exist_ok=True)
+        status_file = cache_dir / "test_status.txt"
+        status_content = f"PASSED:{_test_counter['passed']} FAILED:{_test_counter['failed']} SKIPPED:{_test_counter['skipped']} COLLECTED:{_test_counter['collected']}"
+        try:
+            status_file.write_text(status_content)
+        except Exception:
+            pass  # Silently ignore if we can't write the status file
+
 
 def pytest_sessionfinish(session: Any, exitstatus: int) -> None:
     """Hook called after all tests have been run."""
@@ -159,7 +208,7 @@ def pytest_sessionfinish(session: Any, exitstatus: int) -> None:
     cache_dir = Path.cwd() / ".pytest_cache"
     cache_dir.mkdir(exist_ok=True)
     status_file = cache_dir / "test_status.txt"
-    status_content = f"PASSED:{_test_counter['passed']} FAILED:{_test_counter['failed']} SKIPPED:{_test_counter['skipped']}"
+    status_content = f"PASSED:{_test_counter['passed']} FAILED:{_test_counter['failed']} SKIPPED:{_test_counter['skipped']} COLLECTED:{_test_counter['collected']}"
     try:
         status_file.write_text(status_content)
     except Exception:

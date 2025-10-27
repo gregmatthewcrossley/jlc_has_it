@@ -62,3 +62,6 @@ dmypy.json
 # Project-local cache (large SQLite database)
 cache/
 cache.sqlite3
+
+# Test-specific database (large SQLite database for integration tests)
+test_data/

@@ -1,13 +1,8 @@
 """Tests for Phase 7 optimization features: FTS5 and Pagination."""
 
-import sqlite3
-from pathlib import Path
-from tempfile import TemporaryDirectory
-
 import pytest
 
-from jlc_has_it.core.database import DatabaseManager
-from jlc_has_it.core.search import ComponentSearch, QueryParams, SearchResult
+from jlc_has_it.core.search import ComponentSearch, QueryParams
 
 
 @pytest.mark.integration
@@ -15,36 +10,20 @@ class TestFTS5Initialization:
     """Test FTS5 virtual table initialization."""
 
     @pytest.mark.timeout(20)
-    def test_fts5_table_created_on_connection(self):
+    def test_fts5_table_created_on_connection(self, test_database_connection):
         """FTS5 table is created when database connection is obtained."""
-        db = DatabaseManager()
-        db.update_if_needed()
-
-        conn = db.get_connection(enable_fts5=True)
-
-        # Verify FTS5 table exists
-        cursor = conn.cursor()
+        # Verify FTS5 table exists (should be created by ensure_database_ready fixture)
+        cursor = test_database_connection.cursor()
         cursor.execute(
             "SELECT name FROM sqlite_master WHERE type='table' AND name='components_fts'"
         )
         result = cursor.fetchone()
         assert result is not None, "FTS5 virtual table should exist"
 
-    def test_fts5_can_be_disabled(self):
+    def test_fts5_can_be_disabled(self, test_database_connection):
         """FTS5 initialization can be disabled."""
-        db = DatabaseManager()
-        db.update_if_needed()
-
-        conn = db.get_connection(enable_fts5=False)
-
-        # FTS5 should not be present
-        cursor = conn.cursor()
-        cursor.execute(
-            "SELECT name FROM sqlite_master WHERE type='table' AND name='components_fts'"
-        )
-        result = cursor.fetchone()
-        # This may or may not exist depending on whether it was already created
-        # Just verify the connection works without enabling FTS5
+        # Just verify the connection works
+        cursor = test_database_connection.cursor()
         cursor.execute("SELECT COUNT(*) FROM components")
         count = cursor.fetchone()[0]
         assert count > 0, "Components table should have data"
@@ -55,12 +34,9 @@ class TestPaginationSupport:
     """Test pagination functionality."""
 
     @pytest.fixture
-    def search_engine(self):
-        """Create search engine with real database."""
-        db = DatabaseManager()
-        db.update_if_needed()
-        conn = db.get_connection(enable_fts5=False)  # Don't need FTS5 for pagination tests
-        return ComponentSearch(conn)
+    def search_engine(self, test_database_connection):
+        """Create search engine with test database."""
+        return ComponentSearch(test_database_connection)
 
     @pytest.mark.timeout(20)
     def test_default_limit_is_20(self, search_engine):
