@@ -74,16 +74,20 @@ def format_test_stats(stats):
     passed = stats.get('PASSED', 0)
     failed = stats.get('FAILED', 0)
     skipped = stats.get('SKIPPED', 0)
-    total = passed + failed + skipped
+    # Use collected count if available (the fixed total), otherwise calculate it
+    total_collected = stats.get('COLLECTED', 0)
+    if total_collected == 0:
+        # Fallback: use sum of executed tests (for backward compatibility)
+        total_collected = passed + failed + skipped
 
-    if total == 0:
+    if total_collected == 0:
         return None
 
-    # Calculate percentage
-    pct = (passed / total * 100) if total > 0 else 0
+    # Number of tests that have been executed so far
+    executed = passed + failed + skipped
 
-    # Build the test status string
-    test_str = f"🧪 [{passed + failed + skipped}/{total}] "
+    # Build the test status string with collected total and executed count
+    test_str = f"🧪 [{executed}/{total_collected}] "
 
     if failed > 0:
         test_str += f"✓{passed} ✗{failed}"
