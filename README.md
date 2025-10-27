@@ -36,7 +36,7 @@ Run the setup script (from the jlc_has_it directory):
 
 This configures `~/.claude/mcp_settings.json` to enable the MCP server for all your KiCad projects.
 
-**Important**: If Claude Code is already running, you must **completely close and restart it** for the MCP server to be detected.
+**Important**: If Claude Code is already running, you must **completely close it and start a fresh instance** for the MCP server to be detected. The configuration is loaded when Claude Code starts up.
 
 **Manual setup** (if you prefer):
 Create or update `~/.claude/mcp_settings.json`:

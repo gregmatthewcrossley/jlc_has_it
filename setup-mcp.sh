@@ -19,7 +19,7 @@ if [ -f "$MCP_CONFIG_FILE" ]; then
         echo "✓ JLC Has It is already configured"
         echo ""
         echo "Next steps:"
-        echo "1. If Claude Code is open, completely close and restart it"
+        echo "1. Close any running Claude Code instances (Cmd+Q or click Quit)"
         echo "2. Open your KiCad project folder: cd ~/my-kicad-project && claude"
         echo "3. Ask Claude Code: 'I need a 100nF capacitor for 16V'"
         exit 0
@@ -56,7 +56,7 @@ EOF
     echo "✓ MCP settings configured successfully"
     echo ""
     echo "Next steps:"
-    echo "1. Restart Claude Code completely"
+    echo "1. Close any running Claude Code instances (Cmd+Q or click Quit)"
     echo "2. Open your KiCad project folder: cd ~/my-kicad-project && claude"
     echo "3. Ask Claude Code: 'I need a 100nF capacitor for 16V'"
 fi
