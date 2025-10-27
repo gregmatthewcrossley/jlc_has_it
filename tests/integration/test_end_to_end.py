@@ -38,18 +38,18 @@ class TestEndToEndComponentSearch:
         Simulates: "I need a 100nF ceramic capacitor for 50V"
         """
         # Step 1: Search for matching components
-        results = tools.search_components(
-            description_contains="100nF",
+        response = tools.search_components(
+            query="100nF",
             category="Capacitors",
             basic_only=True,
             limit=20,
         )
 
         # Should find several results
-        assert len(results) > 0, "Should find 100nF capacitors"
+        assert len(response["results"]) > 0, "Should find 100nF capacitors"
 
         # Step 2: Verify top result is valid
-        top_result = results[0]
+        top_result = response["results"][0]
         assert top_result["lcsc_id"] is not None
         assert "100nF" in top_result["description"] or "0.1" in top_result["description"]
         assert top_result["stock"] > 0
@@ -59,7 +59,9 @@ class TestEndToEndComponentSearch:
         details = tools.get_component_details(lcsc_id=top_result["lcsc_id"])
         assert details is not None
         assert "attributes" in details
-        assert "voltage" in {k.lower() for k in details["attributes"].keys()}
+        # Check for voltage-related attributes (might be "voltage", "voltage rated", etc.)
+        voltage_attrs = {k.lower() for k in details["attributes"].keys()}
+        assert any("voltage" in attr for attr in voltage_attrs)
 
     def test_workflow_find_resistor_by_value(self, tools):
         """Workflow: Find a 10k resistor in 0603 package.
@@ -67,8 +69,8 @@ class TestEndToEndComponentSearch:
         Simulates: "I need a 10k resistor in 0603 package"
         """
         # Step 1: Search for resistors
-        results = tools.search_components(
-            description_contains="10k",
+        response = tools.search_components(
+            query="10k",
             category="Resistors",
             package="0603",
             basic_only=True,
@@ -76,9 +78,9 @@ class TestEndToEndComponentSearch:
         )
 
         # Should find results (if 10k 0603 resistors exist)
-        if results:
+        if response["results"]:
             # Verify results match criteria
-            for result in results:
+            for result in response["results"]:
                 assert "10k" in result["description"].lower() or "10" in result["description"]
                 assert result["stock"] > 0
 
@@ -110,17 +112,17 @@ class TestEndToEndComponentSearch:
         Simulates: "I need a capacitor with lots of stock"
         """
         # Step 1: Search for high-stock capacitors
-        results = tools.search_components(
+        response = tools.search_components(
             category="Capacitors",
             basic_only=True,
             in_stock_only=True,
             limit=50,
         )
 
-        assert len(results) > 0
+        assert len(response["results"]) > 0
 
         # Step 2: Verify stock levels are high
-        for result in results:
+        for result in response["results"]:
             assert result["stock"] > 0
             # Results are sorted by stock, so first should have most
 
@@ -130,23 +132,22 @@ class TestEndToEndComponentSearch:
         Simulates: "I need a capacitor that costs less than 1 cent"
         """
         # Step 1: Search for cheap components
-        results = tools.search_components(
+        response = tools.search_components(
             category="Capacitors",
             max_price=0.01,
             basic_only=True,
             limit=20,
         )
 
-        assert len(results) > 0
+        assert len(response["results"]) > 0
 
         # Step 2: Verify prices
-        for result in results:
+        for result in response["results"]:
             assert result["price"] <= 0.01
             assert result["stock"] > 0
 
 
 @pytest.mark.integration
-@pytest.mark.xfail(reason="Real database schema differs from expected schema")
 class TestEndToEndProjectIntegration:
     """End-to-end tests for KiCad project integration."""
 
@@ -220,7 +221,9 @@ class TestEndToEndProjectIntegration:
         # Verify they were created
         assert lib_dir.exists()
         assert fp_dir.exists()
-        assert (lib_dir / ".." / "footprints.pretty").exists()
+        # Verify footprint directory is where we expect
+        assert fp_dir.name == "footprints.pretty"
+        assert fp_dir.parent == lib_dir
 
     def test_workflow_register_library(self, temp_kicad_project):
         """Workflow: Register symbol library in KiCad project.
@@ -249,7 +252,6 @@ class TestEndToEndProjectIntegration:
 
 
 @pytest.mark.integration
-@pytest.mark.xfail(reason="Real database schema differs from expected schema")
 class TestEndToEndSearchPatterns:
     """End-to-end tests for realistic search patterns."""
 
@@ -265,14 +267,14 @@ class TestEndToEndSearchPatterns:
 
         Example: "100nF 16V capacitor"
         """
-        results = tools.search_components(
+        response = tools.search_components(
             query="100nF 16V",
             category="Capacitors",
             limit=10,
         )
 
-        assert len(results) > 0
-        assert any("100nF" in r["description"] for r in results)
+        assert len(response["results"]) > 0
+        assert any("100nF" in r["description"] for r in response["results"])
 
     def test_search_pattern_common_parts(self, tools):
         """Pattern: Find common/popular parts.
@@ -280,45 +282,45 @@ class TestEndToEndSearchPatterns:
         Example: "Popular capacitors"
         """
         # Basic parts with high stock = popular
-        results = tools.search_components(
+        response = tools.search_components(
             category="Capacitors",
             basic_only=True,
             in_stock_only=True,
             limit=20,
         )
 
-        assert len(results) > 0
-        assert all(r["basic"] for r in results)
+        assert len(response["results"]) > 0
+        assert all(r["basic"] for r in response["results"])
 
     def test_search_pattern_budget(self, tools):
         """Pattern: Find parts within budget.
 
         Example: "Cheap resistors for bulk"
         """
-        results = tools.search_components(
+        response = tools.search_components(
             category="Resistors",
             basic_only=True,
             max_price=0.01,
             limit=20,
         )
 
-        if results:
-            assert all(r["price"] <= 0.01 for r in results)
+        if response["results"]:
+            assert all(r["price"] <= 0.01 for r in response["results"])
 
     def test_search_pattern_specific_manufacturer(self, tools):
         """Pattern: Find parts from specific manufacturer.
 
         Example: "Samsung capacitors"
         """
-        results = tools.search_components(
+        response = tools.search_components(
             manufacturer="Samsung",
             category="Capacitors",
             basic_only=True,
             limit=20,
         )
 
-        if results:
-            assert all("samsung" in r["manufacturer"].lower() for r in results)
+        if response["results"]:
+            assert all("samsung" in r["manufacturer"].lower() for r in response["results"])
 
     def test_search_pattern_refine_results(self, tools):
         """Pattern: Refine search results iteratively.
@@ -326,15 +328,15 @@ class TestEndToEndSearchPatterns:
         Simulates user asking Claude to narrow down results
         """
         # First: broad search
-        broad_results = tools.search_components(
+        broad_response = tools.search_components(
             category="Capacitors",
             limit=50,
         )
 
-        assert len(broad_results) > 0
+        assert len(broad_response["results"]) > 0
 
         # Second: refine with more filters
-        refined_results = tools.search_components(
+        refined_response = tools.search_components(
             category="Capacitors",
             basic_only=True,
             in_stock_only=True,
@@ -343,7 +345,7 @@ class TestEndToEndSearchPatterns:
         )
 
         # Refined should have fewer or equal results
-        assert len(refined_results) <= len(broad_results)
+        assert len(refined_response["results"]) <= len(broad_response["results"])
 
 
 @pytest.mark.integration
@@ -401,16 +403,16 @@ class TestEndToEndSlowWorkflows:
 
             try:
                 # Step 1: Search
-                results = tools.search_components(
+                response = tools.search_components(
                     query="capacitor",
                     basic_only=True,
                     limit=5,
                 )
 
-                assert len(results) > 0
+                assert len(response["results"]) > 0
 
                 # Step 2: Get details
-                top_lcsc = results[0]["lcsc_id"]
+                top_lcsc = response["results"][0]["lcsc_id"]
                 details = tools.get_component_details(lcsc_id=top_lcsc)
                 assert details is not None
 

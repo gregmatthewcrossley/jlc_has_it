@@ -35,8 +35,46 @@ class TestDatabaseManager:
         db_path = temp_cache_dir / "cache.sqlite3"
         conn = sqlite3.connect(db_path)
         cursor = conn.cursor()
-        cursor.execute("CREATE TABLE components (lcsc TEXT, description TEXT)")
-        cursor.execute("INSERT INTO components VALUES ('C12345', 'Test part')")
+        # Create schema matching real database
+        cursor.execute("""
+            CREATE TABLE categories (
+                id INTEGER PRIMARY KEY,
+                category TEXT
+            )
+        """)
+        cursor.execute("""
+            CREATE TABLE manufacturers (
+                id INTEGER PRIMARY KEY,
+                manufacturer TEXT
+            )
+        """)
+        cursor.execute("""
+            CREATE TABLE components (
+                lcsc INTEGER PRIMARY KEY,
+                category_id INTEGER,
+                mfr TEXT,
+                package TEXT,
+                joints INTEGER,
+                manufacturer_id INTEGER,
+                basic INTEGER,
+                description TEXT,
+                datasheet TEXT,
+                stock INTEGER,
+                price TEXT,
+                last_update INTEGER,
+                extra TEXT,
+                flag INTEGER,
+                last_on_stock INTEGER,
+                preferred INTEGER
+            )
+        """)
+        cursor.execute("INSERT INTO categories VALUES (1, 'Test Category')")
+        cursor.execute("INSERT INTO manufacturers VALUES (1, 'Test Mfr')")
+        cursor.execute("""
+            INSERT INTO components VALUES
+            (12345, 1, 'TEST-001', '0603', 2, 1, 1, 'Test part', NULL, 100, '[{"qty":1,"price":0.01}]',
+             0, NULL, 0, NULL, 0)
+        """)
         conn.commit()
         conn.close()
         return db_path
@@ -200,7 +238,7 @@ class TestDatabaseManager:
         cursor.execute("SELECT * FROM components")
         rows = cursor.fetchall()
         assert len(rows) == 1
-        assert rows[0]["lcsc"] == "C12345"
+        assert rows[0]["lcsc"] == 12345
 
         conn.close()
 

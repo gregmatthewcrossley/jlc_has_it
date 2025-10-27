@@ -11,10 +11,11 @@ def test_pytest_is_working() -> None:
 
 def test_sample_component_data_fixture(sample_component_data: dict[str, Any]) -> None:
     """Test that sample component data fixture works."""
-    assert sample_component_data["lcsc"] == "C12345"
+    # Sample data uses integer LCSC ID (real database format)
+    assert sample_component_data["lcsc"] == 12345
     assert sample_component_data["basic"] is True
     assert sample_component_data["stock"] == 5000
-    assert "Capacitance" in sample_component_data["attributes"]
+    assert "Capacitance" in sample_component_data.get("extra", {}).get("attributes", {})
 
 
 def test_temp_project_dir_fixture(temp_project_dir: Path) -> None:
