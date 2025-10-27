@@ -15,13 +15,11 @@ class PriceTier:
     def from_dict(cls, data: dict[str, Any]) -> "PriceTier":
         """Create from dictionary.
 
-        Handles both old and new jlcparts database formats:
-        - Old: {"qty": 1, "price": 0.05}
-        - New: {"qFrom": 1, "price": 0.05}
+        Real jlcparts database uses qFrom/qTo format for price tiers.
         """
-        # Try 'qty' first (old format), then 'qFrom' (new format)
-        qty = data.get("qty") or data.get("qFrom", 1)
-        return cls(qty=int(qty), price=float(data["price"]))
+        # Extract starting quantity of this price tier
+        qty = int(data["qFrom"])
+        return cls(qty=qty, price=float(data["price"]))
 
 
 @dataclass
