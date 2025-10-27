@@ -28,18 +28,23 @@ pipx inject jlc-has-it easyeda2kicad
 
 ### 3. Configure Claude Code
 
-Run the setup script (from the jlc_has_it directory):
+Navigate to your KiCad project folder and run the setup script:
 
 ```bash
-./setup-mcp.sh
+cd ~/my-kicad-projects/my-project
+/path/to/jlc_has_it/setup-mcp.sh
 ```
 
-This configures `~/.claude/.mcp.json` to enable the MCP server for all your KiCad projects.
+This creates a `.mcp.json` file in your project directory that tells Claude Code about the MCP server.
 
-**Important**: If Claude Code is already running, you must **completely close it and start a fresh instance** for the MCP server to be detected. The configuration is loaded when Claude Code starts up.
+**Important**: After running the setup script:
+1. Close any running Claude Code instances (Cmd+Q or click Quit)
+2. Reopen Claude Code in your project folder: `claude`
+3. When prompted, **approve access to the 'jlc-has-it' MCP server** (Claude Code shows a security prompt)
+4. The MCP tools are now available in your Claude Code session
 
 **Manual setup** (if you prefer):
-Create or update `~/.claude/.mcp.json`:
+Create `.mcp.json` in your KiCad project root directory:
 ```json
 {
   "mcpServers": {
@@ -53,17 +58,7 @@ Create or update `~/.claude/.mcp.json`:
 
 ### 4. Start Using!
 
-Open Claude Code at the root of your KiCad project:
-
-```bash
-# Navigate to your KiCad project folder
-cd ~/my-kicad-projects/my-project
-
-# Open Claude Code
-claude
-```
-
-Then ask Claude Code naturally:
+You've already navigated to your KiCad project and opened Claude Code in step 3. Now just ask Claude Code naturally:
 
 ```
 "I need a 100nF ceramic capacitor for 16V operation"
@@ -91,7 +86,11 @@ cd ..
 rm -rf jlc_has_it
 ```
 
-To remove the MCP configuration, edit `~/.claude/.mcp.json` and remove the `jlc-has-it` server entry, or delete the entire file if it only contained JLC Has It.
+To remove the MCP configuration from a project, delete the `.mcp.json` file from your KiCad project root:
+
+```bash
+rm .mcp.json
+```
 
 To remove the cached database:
 
