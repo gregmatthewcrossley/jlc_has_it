@@ -34,12 +34,12 @@ Run the setup script (from the jlc_has_it directory):
 ./setup-mcp.sh
 ```
 
-This configures `~/.claude/mcp_settings.json` to enable the MCP server for all your KiCad projects.
+This configures `~/.claude/.mcp.json` to enable the MCP server for all your KiCad projects.
 
 **Important**: If Claude Code is already running, you must **completely close it and start a fresh instance** for the MCP server to be detected. The configuration is loaded when Claude Code starts up.
 
 **Manual setup** (if you prefer):
-Create or update `~/.claude/mcp_settings.json`:
+Create or update `~/.claude/.mcp.json`:
 ```json
 {
   "mcpServers": {
@@ -91,7 +91,7 @@ cd ..
 rm -rf jlc_has_it
 ```
 
-To remove the MCP configuration, edit `~/.claude/mcp_settings.json` and remove the `jlc-has-it` server entry, or delete the entire file if it only contained JLC Has It.
+To remove the MCP configuration, edit `~/.claude/.mcp.json` and remove the `jlc-has-it` server entry, or delete the entire file if it only contained JLC Has It.
 
 To remove the cached database:
 

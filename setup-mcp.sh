@@ -3,14 +3,14 @@
 
 set -e
 
-MCP_CONFIG_FILE="$HOME/.claude/mcp_settings.json"
+MCP_CONFIG_FILE="$HOME/.claude/.mcp.json"
 
 echo "Setting up JLC Has It MCP server..."
 
 # Create .claude directory if it doesn't exist
 mkdir -p "$HOME/.claude"
 
-# Check if mcp_settings.json already exists
+# Check if .mcp.json already exists
 if [ -f "$MCP_CONFIG_FILE" ]; then
     echo "Found existing MCP settings at $MCP_CONFIG_FILE"
 
@@ -28,7 +28,7 @@ if [ -f "$MCP_CONFIG_FILE" ]; then
         # For simplicity, we'll just show the user what to add
         cat << 'EOF'
 
-To add JLC Has It to your existing MCP servers, add this to your ~/.claude/mcp_settings.json:
+To add JLC Has It to your existing MCP servers, add this to your ~/.claude/.mcp.json:
 
     "jlc-has-it": {
       "command": "jlc-has-it-mcp",
