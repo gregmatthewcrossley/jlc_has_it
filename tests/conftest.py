@@ -23,13 +23,14 @@ def ensure_database_ready() -> None:
     print("=" * 80)
 
     # Check if database exists and is current
-    if not db_manager.get_database_path().exists():
+    if not db_manager.database_path.exists():
         print("✓ Database file not found - will download on first use")
     else:
-        age_hours = db_manager.check_database_age()
-        if age_hours is not None:
+        age_timedelta = db_manager.check_database_age()
+        if age_timedelta is not None:
+            age_hours = age_timedelta.total_seconds() / 3600
             print(f"✓ Database exists (age: {age_hours:.1f} hours)")
-            if db_manager.needs_update(age_hours):
+            if db_manager.needs_update():
                 print("  WARNING: Database is >24 hours old, consider updating")
         else:
             print("✓ Database file exists")
