@@ -49,27 +49,27 @@ class ComponentSearch:
         """
         # Build query with JOINs for normalized schema
         query_parts = [
-            "SELECT c.lcsc, c.description, c.mfr, cat.name as category, "
-            "CAST(NULL AS TEXT) as subcategory, mfr.name as manufacturer, "
+            "SELECT c.lcsc, c.description, c.mfr, cat.category as category, "
+            "cat.subcategory, man.name as manufacturer, "
             "c.basic, c.stock, c.price, c.joints, CAST(NULL AS TEXT) as attributes "
             "FROM components c "
             "LEFT JOIN categories cat ON c.category_id = cat.id "
-            "LEFT JOIN manufacturers mfr ON c.manufacturer_id = mfr.id "
+            "LEFT JOIN manufacturers man ON c.manufacturer_id = man.id "
             "WHERE 1=1"
         ]
         query_args: list[Any] = []
 
         # Category filters
         if params.category:
-            query_parts.append("AND cat.name LIKE ?")
+            query_parts.append("AND cat.category LIKE ?")
             query_args.append(f"%{params.category}%")
 
         if params.subcategory:
-            # Subcategory not available in normalized schema, skip for now
-            pass
+            query_parts.append("AND cat.subcategory LIKE ?")
+            query_args.append(f"%{params.subcategory}%")
 
         if params.manufacturer:
-            query_parts.append("AND mfr.name LIKE ?")
+            query_parts.append("AND man.name LIKE ?")
             query_args.append(f"%{params.manufacturer}%")
 
         if params.description_contains:
