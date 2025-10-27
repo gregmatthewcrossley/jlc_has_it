@@ -73,7 +73,10 @@ class ComponentSearch:
             query_args.append(f"%{params.manufacturer}%")
 
         if params.description_contains:
-            query_parts.append("AND c.description LIKE ?")
+            # Search in both description and mfr (manufacturer part number)
+            # since description field is often empty in the database
+            query_parts.append("AND (c.description LIKE ? OR c.mfr LIKE ?)")
+            query_args.append(f"%{params.description_contains}%")
             query_args.append(f"%{params.description_contains}%")
 
         # Availability filters
