@@ -41,21 +41,16 @@ dev = [
     "ruff>=0.0.285",
     "mypy>=1.5.0",
 ]
-cli = [
-    "typer>=0.9.0",
-    "rich>=13.5.0",
-]
 
 [project.scripts]
 jlc-has-it-mcp = "jlc_has_it.mcp.__main__:run"
-jlc-has-it = "jlc_has_it.cli.main:app"
 
 [project.urls]
 Homepage = "https://github.com/gcrossley/jlc_has_it"
 Repository = "https://github.com/gcrossley/jlc_has_it"
 
 [tool.setuptools]
-packages = ["jlc_has_it", "jlc_has_it.core", "jlc_has_it.core.kicad", "jlc_has_it.mcp", "jlc_has_it.cli"]
+packages = ["jlc_has_it", "jlc_has_it.core", "jlc_has_it.core.kicad", "jlc_has_it.mcp"]
 
 [tool.black]
 line-length = 100

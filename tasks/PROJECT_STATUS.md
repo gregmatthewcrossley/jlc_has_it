@@ -109,12 +109,12 @@ Complete MCP server implementation with 4 tools:
 - **How**: `LibraryDownloader` class wraps easyeda2kicad, validates files, supports parallel downloads
 - **File**: `jlc_has_it/core/library_downloader.py`
 
-### Phase 3: Component Search (0/3)
+### Phase 3: Component Search (0/3) - **OPTIONAL**
 **Task 03-001**: Implement basic component search
 - **Status**: Pending (2-4 hours)
 - **What**: Core search without complex filtering
-- **Why needed**: MCP search tool needs this to work
-- **Complexity**: Medium (might already partially work with database layer)
+- **Why needed**: Advanced search enhancements beyond current MCP functionality
+- **Complexity**: Medium
 - **Dependencies**: 01-002, 01-003 (both complete)
 
 **Task 03-002**: Implement specification-based filtering
@@ -129,16 +129,7 @@ Complete MCP server implementation with 4 tools:
 - **Complexity**: Medium
 - **Dependencies**: 03-001
 
-### Phase 5: CLI Interface (0/5) - **OPTIONAL**
-**Status**: Pending, but MCP tools are the primary interface
-
-- 05-001: CLI framework setup
-- 05-002: Search command
-- 05-003: Interactive component selection
-- 05-004: Add command
-- 05-005: Config command
-
-**Note**: These are optional since MCP tools in Claude Code/Desktop are the primary interface.
+**Note**: Phase 3 is optional enhancement work. Current MCP tools provide full search functionality.
 
 ## 🎉 What Works RIGHT NOW
 
@@ -234,20 +225,14 @@ claude
 
 ## 🛣️ Recommended Next Steps
 
-### Phase 3 - Component Search (3 tasks, 6-12 hours)
-The MVP is complete, but these tasks add better search capabilities:
+### Phase 3 - Component Search (3 tasks, 6-12 hours, OPTIONAL)
+Optional enhancements for advanced search capabilities:
 
 1. **03-001** (Basic search) - Core search with basic filters
 2. **03-002** (Spec filtering) - Filter by voltage, capacitance, tolerance, etc.
 3. **03-003** (Ranking) - Better relevance scoring and result ordering
 
-These improve the search results quality but the system works fine without them.
-
-### Phase 5 - CLI Interface (5 tasks, 10-20 hours, OPTIONAL)
-For command-line usage (most users prefer Claude Code's MCP interface):
-
-5. **05-001** (CLI framework) - Basic CLI setup
-6. **05-002 through 05-005** (CLI commands) - Search, interactive selection, add command, config
+These would improve search result quality but the system works perfectly fine without them. The MCP interface in Claude Code/Desktop is the primary interface.
 
 ## 📈 Performance
 

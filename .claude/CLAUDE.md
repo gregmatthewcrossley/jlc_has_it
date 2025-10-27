@@ -64,7 +64,6 @@ Claude: [calls add_to_project MCP tool]
 - Conversational interface through Claude Code/Desktop
 - Uses jlcparts SQLite database (downloaded locally)
 - Writes to project-specific KiCad libraries
-- Optional: Simple CLI tool for scripting/automation
 
 **Phase 2** (Optional enhancements):
 - Cache downloaded libraries to speed up repeat searches
@@ -78,7 +77,7 @@ Claude: [calls add_to_project MCP tool]
 
 ### Core Components
 
-**Layered Architecture:** Core library (LLM-agnostic) + MCP interface + optional CLI
+**Layered Architecture:** Core library (LLM-agnostic) + MCP interface
 
 ```
 jlc_has_it/
@@ -98,8 +97,6 @@ jlc_has_it/
 │   │   ├── add_to_project()
 │   │   └── compare_components()
 │   └── __main__.py           # Entry point: jlc-has-it-mcp
-├── cli/                       # Optional: Simple CLI for scripting
-│   └── main.py               # Entry point: jlc-has-it
 └── tests/
     ├── core/
     ├── mcp/
@@ -235,7 +232,7 @@ Short summary (50 chars or less)
 ## Task Management
 
 This project uses a structured task system in the `tasks/` directory:
-- **21 active tasks** organized by phase (00-setup, 01-jlcpcb, 02-library, etc.)
+- **16 active tasks** organized by phase (00-setup, 01-jlcpcb, 02-library, etc.)
 - Each task is a YAML file with ID, dependencies, acceptance criteria, and status
 - See `tasks/README.md` for overview
 - See `tasks/INDEX.md` for task summary
@@ -260,10 +257,6 @@ Based on task analysis, these libraries will likely be useful:
 **MCP Integration:**
 - `mcp` - Model Context Protocol SDK from Anthropic
 - `pydantic` - Data validation for tool parameters
-
-**CLI & UI (optional):**
-- `typer` or `click` - CLI framework for optional CLI tool
-- `rich` - Terminal formatting, tables, progress bars
 
 **HTTP & APIs:**
 - `requests` or `httpx` - HTTP client for downloading libraries
@@ -310,9 +303,6 @@ ruff check .
 
 # Type checking
 mypy jlc_has_it/
-
-# Optional: Run CLI tool (for scripting/automation)
-jlc-has-it search "50v 220uF SMD capacitor"
 ```
 
 ## Development Notes
