@@ -8,6 +8,10 @@ import pytest
 from jlc_has_it.core.database import DatabaseManager
 
 
+# Track test progress for verbose output
+_test_counter = {"passed": 0, "failed": 0, "error": 0, "skipped": 0, "total": 0}
+
+
 @pytest.fixture(scope="session", autouse=True)
 def ensure_database_ready() -> None:
     """
@@ -114,3 +118,38 @@ def mock_database_connection(mocker: Any) -> Any:
     mock_conn.cursor.return_value = mock_cursor
     mock_conn.execute.return_value = mock_cursor
     return mock_conn
+
+
+# Pytest hooks for verbose test progress output
+def pytest_runtest_logreport(report: Any) -> None:
+    """Hook called after a test result is logged."""
+    if report.when == "call":  # Only count actual test execution, not setup/teardown
+        if report.passed:
+            _test_counter["passed"] += 1
+            status = "✓ PASS"
+        elif report.failed:
+            _test_counter["failed"] += 1
+            status = "✗ FAIL"
+        elif report.skipped:
+            _test_counter["skipped"] += 1
+            status = "⊘ SKIP"
+        else:
+            return
+
+        _test_counter["total"] += 1
+        test_name = report.nodeid.split("::")[-1]
+        total = _test_counter["total"]
+        print(f"\n[{total:3d}] {status} {test_name}")
+
+
+def pytest_sessionfinish(session: Any, exitstatus: int) -> None:
+    """Hook called after all tests have been run."""
+    print("\n" + "=" * 80)
+    print("TEST SUMMARY")
+    print("=" * 80)
+    print(f"✓ Passed:  {_test_counter['passed']}")
+    print(f"✗ Failed:  {_test_counter['failed']}")
+    print(f"⊘ Skipped: {_test_counter['skipped']}")
+    print(f"━━━━━━━━━━")
+    print(f"  Total:   {_test_counter['total']}")
+    print("=" * 80)
