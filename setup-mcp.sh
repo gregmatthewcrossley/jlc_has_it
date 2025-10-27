@@ -17,6 +17,11 @@ if [ -f "$MCP_CONFIG_FILE" ]; then
     # Check if jlc-has-it is already configured
     if grep -q "jlc-has-it" "$MCP_CONFIG_FILE"; then
         echo "✓ JLC Has It is already configured"
+        echo ""
+        echo "Next steps:"
+        echo "1. If Claude Code is open, completely close and restart it"
+        echo "2. Open your KiCad project folder: cd ~/my-kicad-project && claude"
+        echo "3. Ask Claude Code: 'I need a 100nF capacitor for 16V'"
         exit 0
     else
         echo "⚠ Adding JLC Has It to existing MCP servers..."
@@ -52,6 +57,6 @@ EOF
     echo ""
     echo "Next steps:"
     echo "1. Restart Claude Code completely"
-    echo "2. Open your KiCad project folder: cd ~/my-kicad-project && code ."
+    echo "2. Open your KiCad project folder: cd ~/my-kicad-project && claude"
     echo "3. Ask Claude Code: 'I need a 100nF capacitor for 16V'"
 fi
