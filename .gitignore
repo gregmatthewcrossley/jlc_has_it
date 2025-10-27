@@ -58,3 +58,7 @@ dmypy.json
 
 # macOS
 .DS_Store
+
+# Project-local cache (large SQLite database)
+cache/
+cache.sqlite3

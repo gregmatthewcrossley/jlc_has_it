@@ -76,16 +76,15 @@ class ComponentSearch:
         Uses FTS5 full-text search when description_contains is specified for
         dramatic performance improvement (15-30s -> <100ms).
 
+        Uses Phase 8 denormalized columns for fast category/manufacturer/package filtering.
+
         Args:
             params: Search parameters
 
         Returns:
             List of Component objects sorted by relevance
         """
-        # Build query with JOINs for normalized schema
-        # Extract description from extra JSON since main description column is empty
-
-        # Use FTS5 if doing full-text search, otherwise use direct table scan
+        # Use FTS5 if doing full-text search, otherwise use direct table scan with denormalized columns
         use_fts5 = params.description_contains is not None
 
         if use_fts5:
@@ -105,49 +104,47 @@ class ComponentSearch:
             ]
             query_args: list[Any] = [params.description_contains]
         else:
-            # Use regular table scan for non-FTS queries
+            # Use denormalized columns for fast filtering (Phase 8 optimization)
             query_parts = [
-                "SELECT c.lcsc, "
-                "COALESCE(json_extract(c.extra, '$.description'), c.description) as description, "
-                "c.mfr, cat.category as category, "
-                "cat.subcategory, man.name as manufacturer, "
-                "c.basic, c.stock, c.price, c.joints, "
-                "json_extract(c.extra, '$.attributes') as attributes "
-                "FROM components c "
-                "LEFT JOIN categories cat ON c.category_id = cat.id "
-                "LEFT JOIN manufacturers man ON c.manufacturer_id = man.id "
+                "SELECT lcsc, "
+                "COALESCE(json_extract(extra, '$.description'), description) as description, "
+                "mfr, category_name as category, "
+                "subcategory_name as subcategory, manufacturer_name as manufacturer, "
+                "basic, stock, price, joints, "
+                "json_extract(extra, '$.attributes') as attributes "
+                "FROM components "
                 "WHERE 1=1"
             ]
             query_args: list[Any] = []
 
-        # Category filters
+        # Category filters (using denormalized columns for speed)
         if params.category:
-            query_parts.append("AND cat.category LIKE ?")
+            query_parts.append("AND category_name LIKE ?")
             query_args.append(f"%{params.category}%")
 
         if params.subcategory:
-            query_parts.append("AND cat.subcategory LIKE ?")
+            query_parts.append("AND subcategory_name LIKE ?")
             query_args.append(f"%{params.subcategory}%")
 
         if params.manufacturer:
-            query_parts.append("AND man.name LIKE ?")
+            query_parts.append("AND manufacturer_name LIKE ?")
             query_args.append(f"%{params.manufacturer}%")
 
         # Availability filters
         if params.basic_only:
-            query_parts.append("AND c.basic = 1")
+            query_parts.append("AND basic = 1")
 
         if params.in_stock_only:
-            query_parts.append("AND c.stock > 0")
+            query_parts.append("AND stock > 0")
 
         if params.min_stock > 0:
-            query_parts.append("AND c.stock >= ?")
+            query_parts.append("AND stock >= ?")
             query_args.append(params.min_stock)
 
         # Price filter (check first price tier)
         if params.max_price is not None:
             # Price is stored as JSON array, extract first tier's price
-            query_parts.append("AND CAST(json_extract(c.price, '$[0].price') AS REAL) <= ?")
+            query_parts.append("AND CAST(json_extract(price, '$[0].price') AS REAL) <= ?")
             query_args.append(params.max_price)
 
         # Note: Package and attribute filters are not currently supported as they
@@ -156,8 +153,8 @@ class ComponentSearch:
 
         # Sorting: basic parts first, then by stock (descending), then by price (ascending)
         query_parts.append(
-            "ORDER BY c.basic DESC, c.stock DESC, "
-            "CAST(json_extract(c.price, '$[0].price') AS REAL) ASC"
+            "ORDER BY basic DESC, stock DESC, "
+            "CAST(json_extract(price, '$[0].price') AS REAL) ASC"
         )
 
         # Limit results with pagination support
