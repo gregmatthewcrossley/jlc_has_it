@@ -431,7 +431,7 @@ source .venv/bin/activate
 pip install -e ".[dev]"  # Includes pytest, pytest-timeout, pytest-mock, etc.
 ```
 
-**Run tests**:
+**Run tests** (use background mode for long test runs):
 ```bash
 # All core tests (96 tests, ~0.2s)
 pytest tests/core/ -v
@@ -445,6 +445,24 @@ pytest tests/ -m "not slow"
 # With coverage
 pytest tests/ --cov=jlc_has_it --cov-report=html
 ```
+
+**IMPORTANT: For longer test runs, use background mode** to avoid blocking:
+```bash
+# Run full test suite in background (use BashOutput to check progress)
+# From Bash tool: run_in_background: true
+pytest tests/ -v 2>&1
+
+# Or manually in terminal:
+# Open new terminal and use: pytest tests/ -v
+# Or use: nohup pytest tests/ -v > test_results.log 2>&1 &
+```
+
+**Note:** Tests now include verbose progress output showing:
+- Database status at startup (jlcparts database ready status)
+- Live test results as they complete: `[  1] ✓ PASS test_name`
+- Final summary with passed/failed/skipped counts
+
+This makes it always clear what tests are running and which have finished.
 
 ### Test Organization
 - `tests/core/test_models.py` - Data models (12 tests)
