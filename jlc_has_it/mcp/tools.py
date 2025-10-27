@@ -32,9 +32,10 @@ class JLCTools:
         in_stock_only: bool = True,
         max_price: Optional[float] = None,
         package: Optional[str] = None,
+        offset: int = 0,
         limit: int = 20,
-    ) -> list[dict[str, Any]]:
-        """Search for components matching criteria.
+    ) -> dict[str, Any]:
+        """Search for components matching criteria with pagination support.
 
         Args:
             query: Free-text search in description
@@ -45,10 +46,15 @@ class JLCTools:
             in_stock_only: Only return in-stock components
             max_price: Maximum unit price
             package: Package type (e.g., "0603", "0805")
-            limit: Maximum number of results to return
+            offset: Number of results to skip (for pagination)
+            limit: Maximum number of results to return (max 100, default 20)
 
         Returns:
-            List of components with: lcsc, description, manufacturer, stock, price, basic
+            Dictionary with:
+            - results: List of components
+            - offset: Current offset
+            - limit: Results per page
+            - has_more: Whether more results are available
         """
         conn = self.db_manager.get_connection()
         search_engine = ComponentSearch(conn)
@@ -62,24 +68,30 @@ class JLCTools:
             in_stock_only=in_stock_only,
             max_price=max_price,
             package=package,
-            limit=limit,
+            offset=max(0, offset),  # Ensure non-negative offset
+            limit=max(1, min(limit, 100)),  # Ensure limit between 1 and 100
         )
 
         results = search_engine.search(params)
 
-        return [
-            {
-                "lcsc_id": comp.lcsc,
-                "description": comp.description,
-                "manufacturer": comp.manufacturer,
-                "category": comp.category,
-                "stock": comp.stock,
-                "price": comp.price,
-                "basic": comp.basic,
-                "mfr_id": comp.mfr,
-            }
-            for comp in results
-        ]
+        return {
+            "results": [
+                {
+                    "lcsc_id": comp.lcsc,
+                    "description": comp.description,
+                    "manufacturer": comp.manufacturer,
+                    "category": comp.category,
+                    "stock": comp.stock,
+                    "price": comp.price,
+                    "basic": comp.basic,
+                    "mfr_id": comp.mfr,
+                }
+                for comp in results
+            ],
+            "offset": params.offset,
+            "limit": params.limit,
+            "has_more": len(results) >= params.limit,
+        }
 
     def get_component_details(self, lcsc_id: str) -> Optional[dict[str, Any]]:
         """Get full details for a single component.
@@ -216,28 +228,85 @@ class JLCTools:
             }
 
     def compare_components(self, lcsc_ids: list[str]) -> dict[str, Any]:
-        """Compare specifications of multiple components.
+        """Compare specifications of multiple components side-by-side.
+
+        Provides a detailed comparison table showing how components differ across
+        key specifications like voltage, capacitance, price, stock, etc.
 
         Args:
-            lcsc_ids: List of JLCPCB part numbers
+            lcsc_ids: List of JLCPCB part numbers (e.g., ["C1525", "C307331"])
 
         Returns:
-            Comparison table with component specs
+            Dictionary with success status and comparison data:
+            {
+                "success": True/False,
+                "error": "error message if success=False",
+                "comparison": {
+                    "count": number of components found,
+                    "components": [
+                        {
+                            "lcsc_id": "C1525",
+                            "description": "10uF ±10% 10V X5R 0603",
+                            "manufacturer": "Samsung",
+                            "category": "Capacitors",
+                            "stock": 50000,
+                            "price": 0.0012,
+                            "basic": True,
+                        },
+                        ...
+                    ],
+                    "attributes": {
+                        "Voltage": [
+                            {"lcsc_id": "C1525", "value": 10, "unit": "V"},
+                            {"lcsc_id": "C307331", "value": 16, "unit": "V"},
+                        ],
+                        "Capacitance": [...],
+                        ...
+                    }
+                }
+            }
         """
+        if not lcsc_ids:
+            return {
+                "success": False,
+                "error": "No LCSC IDs provided for comparison",
+            }
+
+        if len(lcsc_ids) > 10:
+            return {
+                "success": False,
+                "error": "Can only compare up to 10 components at a time",
+            }
+
         conn = self.db_manager.get_connection()
         search_engine = ComponentSearch(conn)
 
         components = []
+        not_found = []
+
         for lcsc_id in lcsc_ids:
-            comp = search_engine.search_by_lcsc(lcsc_id)
-            if comp:
-                components.append(comp)
+            try:
+                comp = search_engine.search_by_lcsc(lcsc_id)
+                if comp:
+                    components.append(comp)
+                else:
+                    not_found.append(lcsc_id)
+            except Exception as e:
+                return {
+                    "success": False,
+                    "error": f"Error looking up {lcsc_id}: {str(e)}",
+                }
 
         if not components:
-            return {"success": False, "error": "No components found"}
+            return {
+                "success": False,
+                "error": f"No components found for: {', '.join(lcsc_ids)}",
+            }
 
         # Extract common attributes for comparison
         comparison = {
+            "count": len(components),
+            "not_found": not_found,
             "components": [],
             "attributes": {},
         }
@@ -248,23 +317,33 @@ class JLCTools:
                     "lcsc_id": comp.lcsc,
                     "description": comp.description,
                     "manufacturer": comp.manufacturer,
+                    "category": comp.category,
+                    "subcategory": comp.subcategory,
                     "stock": comp.stock,
                     "price": comp.price,
                     "basic": comp.basic,
+                    "joints": comp.joints,
                 }
             )
 
-            # Collect unique attributes
+            # Collect unique attributes for side-by-side comparison
             for attr_name, attr_value in comp.attributes.items():
                 if attr_name not in comparison["attributes"]:
                     comparison["attributes"][attr_name] = []
+
+                # Extract value and unit for consistent formatting
+                if isinstance(attr_value, dict):
+                    value = attr_value.get("value", attr_value)
+                    unit = attr_value.get("unit", "")
+                else:
+                    value = attr_value
+                    unit = ""
+
                 comparison["attributes"][attr_name].append(
                     {
                         "lcsc_id": comp.lcsc,
-                        "value": (
-                            attr_value.get("value") if isinstance(attr_value, dict) else attr_value
-                        ),
-                        "unit": attr_value.get("unit", "") if isinstance(attr_value, dict) else "",
+                        "value": value,
+                        "unit": unit,
                     }
                 )
 

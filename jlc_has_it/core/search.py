@@ -1,10 +1,39 @@
 """Component search functionality."""
 
 import sqlite3
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any, Optional
 
 from jlc_has_it.core.models import Component
+
+
+@dataclass
+class SearchResult:
+    """Result of a component search with pagination info."""
+
+    results: list[Component]
+    offset: int = 0
+    limit: int = 20
+    total_count: Optional[int] = None  # Only set if include_total_count=True
+
+    @property
+    def has_more(self) -> bool:
+        """Check if there are more results available."""
+        if self.total_count is None:
+            # Can't determine if there are more without total count
+            return len(self.results) >= self.limit
+        return self.offset + len(self.results) < self.total_count
+
+    def next_page(self) -> Optional["SearchResult"]:
+        """Get offset for next page (useful for continued pagination)."""
+        if self.has_more:
+            return SearchResult(
+                results=[],  # Will be filled by caller
+                offset=self.offset + self.limit,
+                limit=self.limit,
+                total_count=self.total_count,
+            )
+        return None
 
 
 @dataclass
@@ -24,7 +53,10 @@ class QueryParams:
     attributes: Optional[dict[str, Any]] = None
     # Attribute range filters (e.g., {"Voltage": {"min": 50}})
     attribute_ranges: Optional[dict[str, dict[str, Any]]] = None
-    limit: int = 50
+    # Pagination support (Phase 7 optimization)
+    offset: int = 0
+    limit: int = 20  # Changed default from 50 to 20 for better pagination UX
+    include_total_count: bool = False  # If True, compute total matching results
 
 
 class ComponentSearch:
@@ -112,9 +144,12 @@ class ComponentSearch:
             "CAST(json_extract(c.price, '$[0].price') AS REAL) ASC"
         )
 
-        # Limit results
-        query_parts.append("LIMIT ?")
-        query_args.append(params.limit)
+        # Limit results with pagination support
+        # Validate limit (max 100, min 1)
+        limit = max(1, min(params.limit, 100))
+        query_parts.append("LIMIT ? OFFSET ?")
+        query_args.append(limit)
+        query_args.append(params.offset)
 
         # Execute query
         query = " ".join(query_parts)
