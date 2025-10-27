@@ -2,7 +2,32 @@
 
 ## Summary
 
-✅ **All tests have timeout protection configured.**
+✅ **All tests have timeout protection configured via `pytest-timeout` plugin.**
+
+## Required Dependency
+
+The timeout feature requires the `pytest-timeout` plugin:
+
+```ini
+# In pyproject.toml [project.optional-dependencies]
+dev = [
+    "pytest>=7.4.0",
+    "pytest-timeout>=2.1.0",  # ← Enables timeout functionality
+    ...
+]
+```
+
+**Installation:**
+```bash
+pip install -e ".[dev]"  # Installs all dev dependencies including pytest-timeout
+# OR
+pip install pytest-timeout>=2.1.0
+```
+
+**Without this plugin**, the `--timeout` option will fail:
+```
+ERROR: Unknown config option: timeout
+```
 
 ## Default Timeout
 
@@ -237,9 +262,31 @@ class TestSlowOperations:
 addopts = "--timeout=60"
 ```
 
+## Troubleshooting: "Unknown config option: timeout"
+
+If you get this error:
+```
+ERROR: Unknown config option: timeout
+```
+
+**Solution**: Install the `pytest-timeout` plugin:
+```bash
+# Option 1: Install with dev dependencies
+pip install -e ".[dev]"
+
+# Option 2: Install just the plugin
+pip install pytest-timeout
+```
+
+Then run tests again:
+```bash
+pytest tests/ -v
+```
+
 ## Summary
 
 ✅ **All tests are protected against hanging**
+- `pytest-timeout` plugin provides timeout functionality
 - 30-second default timeout prevents infinite loops
 - Database tests have 20-second overrides for FTS5 operations
 - Slow tests are marked and can be skipped

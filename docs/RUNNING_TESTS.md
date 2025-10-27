@@ -6,9 +6,15 @@ Tests require the project dependencies to be installed:
 
 ```bash
 cd /Users/gregmatthewcrossley/Developer/jlc_has_it
-pip install -e .
-pip install pytest pytest-cov pytest-mock
+
+# Install project with dev dependencies (recommended)
+pip install -e ".[dev]"
+
+# OR install manually if needed
+pip install pytest pytest-cov pytest-mock pytest-timeout
 ```
+
+**Important**: The `pytest-timeout` plugin is required for timeout protection. It's included in the `[dev]` dependencies.
 
 ## Quick Start
 
