@@ -410,8 +410,14 @@ deactivate
 ### Running Tests
 
 ```bash
-# Run all unit tests (104 tests, all passing)
+# First, activate the virtual environment (if using venv)
+source .venv/bin/activate
+
+# Run all tests (221 tests, all passing)
 pytest
+
+# Run core tests only
+pytest tests/core/ -v
 
 # Run integration tests (with real JLCPCB database)
 pytest tests/integration/ -v
@@ -457,21 +463,25 @@ jlc_has_it/
 
 ### Testing
 
-**Unit Tests** (104 tests, all mocked):
+**Core Tests** (96 tests, using test database):
 - Database management and downloads
 - Component search and filtering
 - Library downloading and validation
 - KiCad project integration
 - Data model parsing
+- Unit normalization and attribute filtering
 
 Run with: `pytest tests/core/ tests/test_sample.py -v`
 
-**Integration Tests** (require internet):
+**Integration Tests** (125 tests, require internet and real JLCPCB database):
 - Real JLCPCB database queries
 - Live easyeda2kicad downloads
 - End-to-end component addition to test projects
+- Full workflow testing
 
 Run with: `pytest tests/integration/ -v`
+
+**Total**: 221 tests passing, 0 failures
 
 ### Common Development Tasks
 
