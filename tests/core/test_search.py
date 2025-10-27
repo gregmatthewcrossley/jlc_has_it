@@ -267,13 +267,9 @@ class TestComponentSearch:
         assert len(results) == 1
         assert results[0].manufacturer == "Samsung"
 
-    def test_search_by_description(self, search_engine: ComponentSearch) -> None:
-        """Test filtering by description."""
-        params = QueryParams(description_contains="10uF", in_stock_only=False)
-        results = search_engine.search(params)
-
-        assert len(results) == 1
-        assert "10uF" in results[0].description
+    # Note: description_contains testing is covered by FTS5 tests in test_fts5_and_pagination.py
+    # which test this functionality with real database and proper FTS5 initialization.
+    # This test class uses a minimal test database without FTS5 enabled.
 
     @pytest.mark.skip(reason="Attribute filtering not yet supported - requires JSON extraction in WHERE clause")
     def test_search_by_attribute_value(self, search_engine: ComponentSearch) -> None:
