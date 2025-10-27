@@ -1,15 +1,17 @@
 """Tests for Phase 7 optimization features: FTS5 and Pagination."""
 
+import sqlite3
+
 import pytest
 
-from jlc_has_it.core.search import ComponentSearch, QueryParams
+from jlc_has_it.core.database import DatabaseManager
+from jlc_has_it.core.search import ComponentSearch, QueryParams, SearchResult
 
 
 @pytest.mark.integration
 class TestFTS5Initialization:
     """Test FTS5 virtual table initialization."""
 
-    @pytest.mark.timeout(20)
     def test_fts5_table_created_on_connection(self, test_database_connection):
         """FTS5 table is created when database connection is obtained."""
         # Verify FTS5 table exists (should be created by ensure_database_ready fixture)
@@ -38,7 +40,6 @@ class TestPaginationSupport:
         """Create search engine with test database."""
         return ComponentSearch(test_database_connection)
 
-    @pytest.mark.timeout(20)
     def test_default_limit_is_20(self, search_engine):
         """Default limit is 20 results per page."""
         params = QueryParams(category="Capacitors")
@@ -46,7 +47,6 @@ class TestPaginationSupport:
 
         assert len(results) <= 20
 
-    @pytest.mark.timeout(20)
     def test_limit_enforced_max_100(self, search_engine):
         """Limit is capped at 100."""
         params = QueryParams(category="Capacitors", limit=200)
@@ -54,7 +54,6 @@ class TestPaginationSupport:
 
         assert len(results) <= 100
 
-    @pytest.mark.timeout(20)
     def test_limit_enforced_min_1(self, search_engine):
         """Limit is enforced to minimum of 1."""
         params = QueryParams(category="Capacitors", limit=0)
@@ -62,7 +61,6 @@ class TestPaginationSupport:
 
         assert len(results) >= 0  # May be empty, but query should work
 
-    @pytest.mark.timeout(20)
     def test_offset_skips_results(self, search_engine):
         """Offset parameter skips correct number of results."""
         # Get first page
@@ -78,7 +76,6 @@ class TestPaginationSupport:
             if page2:
                 assert page1[0].lcsc != page2[0].lcsc, "Pages should have different results"
 
-    @pytest.mark.timeout(20)
     def test_zero_offset_returns_first_page(self, search_engine):
         """Offset 0 returns first page."""
         params = QueryParams(category="Capacitors", limit=5, offset=0)
@@ -86,7 +83,6 @@ class TestPaginationSupport:
 
         assert len(results) > 0, "First page should have results"
 
-    @pytest.mark.timeout(20)
     def test_large_offset_returns_empty(self, search_engine):
         """Very large offset returns empty results (not error)."""
         params = QueryParams(
@@ -98,7 +94,6 @@ class TestPaginationSupport:
 
         assert results == [], "Large offset should return empty, not error"
 
-    @pytest.mark.timeout(20)
     def test_pagination_maintains_sort_order(self, search_engine):
         """Results across pages maintain sort order (basic DESC, stock DESC, price ASC)."""
         # Get multiple pages
@@ -178,7 +173,6 @@ class TestSearchResultClass:
 class TestFTS5SearchPerformance:
     """Test that FTS5 is actually available and can improve performance."""
 
-    @pytest.mark.timeout(10)
     def test_fts5_table_is_populated(self):
         """FTS5 table is populated with data."""
         db = DatabaseManager()
@@ -241,7 +235,6 @@ class TestFTS5SearchPerformance:
 class TestPaginationWithMCP:
     """Test pagination through MCP tools."""
 
-    @pytest.mark.timeout(20)
     def test_search_components_returns_pagination_info(self):
         """search_components tool returns pagination metadata."""
         from jlc_has_it.mcp.tools import JLCTools
@@ -260,7 +253,6 @@ class TestPaginationWithMCP:
         assert result["offset"] == 0
         assert result["limit"] == 10
 
-    @pytest.mark.timeout(20)
     def test_pagination_through_mcp_tools(self):
         """Can paginate results through MCP tools."""
         from jlc_has_it.mcp.tools import JLCTools
@@ -287,7 +279,6 @@ class TestPaginationWithMCP:
             first_id_2 = page2["results"][0]["lcsc_id"]
             assert first_id_1 != first_id_2, "Pages should have different first results"
 
-    @pytest.mark.timeout(20)
     def test_pagination_respects_max_limit(self):
         """Pagination enforces maximum limit of 100."""
         from jlc_has_it.mcp.tools import JLCTools

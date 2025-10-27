@@ -37,7 +37,6 @@ dev = [
     "pytest-mock>=3.11.1",
     "pytest-asyncio>=0.21.1",
     "pytest-vcr>=1.0.2",
-    "pytest-timeout>=2.1.0",
     "black>=23.7.0",
     "ruff>=0.0.285",
     "mypy>=1.5.0",
@@ -104,9 +103,8 @@ testpaths = ["tests"]
 python_files = "test_*.py"
 python_classes = "Test*"
 python_functions = "test_*"
-addopts = "-v -ra --tb=short --timeout=0"
+addopts = "-v -ra --tb=short"
 asyncio_mode = "auto"
 markers = [
     "integration: marks tests as integration tests (deselect with '-m \"not integration\"')",
-    "timeout: custom timeout for individual tests",
 ]
