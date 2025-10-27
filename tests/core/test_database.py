@@ -228,7 +228,7 @@ class TestDatabaseManager:
 
     def test_get_connection(self, db_manager: DatabaseManager, mock_database_file: Path) -> None:
         """Test getting database connection."""
-        conn = db_manager.get_connection()
+        conn = db_manager.get_connection(enable_fts5=False)
 
         assert isinstance(conn, sqlite3.Connection)
         assert conn.row_factory == sqlite3.Row
