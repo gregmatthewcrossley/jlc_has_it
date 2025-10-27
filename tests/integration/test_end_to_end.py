@@ -405,7 +405,7 @@ class TestEndToEndSlowWorkflows:
                 # Step 1: Search
                 response = tools.search_components(
                     query="capacitor",
-                    basic_only=True,
+                    basic_only=False,  # Not all capacitors in FTS5 are basic parts
                     limit=5,
                 )
 
