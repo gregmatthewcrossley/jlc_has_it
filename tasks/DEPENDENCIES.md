@@ -61,34 +61,38 @@ Phase 7: Performance Optimization ✅
 12. ✅ 07-001 (FTS5 indexing)
 13. ✅ 07-002 (Pagination)
 
-### Remaining (Priority Order) - 5 tasks
-1. **03-001** (Basic search) - Core search without complex filtering
-2. **03-002** (Spec filtering) - Add filtering to search
-3. **03-003** (Ranking) - Improve result ordering
-4. **05-001** (CLI framework) - Optional, MCP is primary interface
-5. **05-002 through 05-005** (CLI commands) - Optional CLI features
+### Remaining (Priority Order) - 5 tasks (All Optional)
+1. **05-001** (CLI framework) - Optional, MCP is primary interface
+2. **05-002** (Search command) - Optional CLI feature
+3. **05-003** (Interactive selection) - Optional CLI feature
+4. **05-004** (Add command) - Optional CLI feature
+5. **05-005** (Config command) - Optional CLI feature
+
+**Note:** Phase 3 tasks (03-001, 03-002, 03-003) are now complete. All MVP functionality is implemented!
 
 ## Critical Path (Remaining Work)
 
 ```
-03-001 (Basic search) ──→ 03-002 (Filtering) ──→ 03-003 (Ranking)
-                                                      ↓
-                                        05-001 (CLI framework) - optional
+✅ ALL MVP PHASES COMPLETE!
+
+Optional enhancements:
+05-001 (CLI framework) ──→ 05-002 (Search cmd) ──→ 05-003 (Selection)
+                                                         ↓
+                                                  05-004 (Add cmd)
+                                                  05-005 (Config)
 ```
 
-**MVP Complete!** Phases 0-2, 4, 6-7 are all done!
+**MVP COMPLETE!** All 7 required phases are done!
 
-**Remaining for full feature set:**
-- **Phase 3 (3 tasks)**: Search filtering and ranking
-- **Phase 5 (5 tasks)**: Optional CLI interface
+**Remaining work (optional):**
+- **Phase 5 (5 tasks)**: Optional CLI interface for scripting
 
 ## Estimated Timeline (Remaining)
 
 - **Low complexity**: 1-2 hours per task
 - **Medium complexity**: 2-4 hours per task
 
-**Phase 3 (03-001, 03-002, 03-003):** 6-12 hours
 **Phase 5 CLI (05-001 through 05-005):** 10-20 hours (optional)
-**Total remaining:** 6-32 hours depending on scope
+**Total remaining:** 0-20 hours depending on scope
 
-**Note:** The system is already fully functional for the core use case (search and add components). Phase 3 adds better filtering/ranking, Phase 5 adds optional CLI.
+**Note:** The MVP is fully functional! Phase 5 CLI is optional for scripting and automation use cases. The system works perfectly with the MCP server interface in Claude Code/Desktop.
