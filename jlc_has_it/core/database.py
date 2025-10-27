@@ -178,8 +178,14 @@ class DatabaseManager:
         if not self.database_path.exists():
             raise FileNotFoundError(f"Database not found at {self.database_path}")
 
-        conn = sqlite3.connect(self.database_path)
+        conn = sqlite3.connect(str(self.database_path))
         conn.row_factory = sqlite3.Row
+
+        # Note on performance: The jlcparts database has 7M+ components with only
+        # basic indexes. Searches with LIKE patterns on description/mfr can be slow
+        # (15-30 seconds). For production use, consider creating indexed copies or
+        # implementing a search cache.
+
         return conn
 
     def get_database_info(self) -> Optional[dict[str, object]]:
