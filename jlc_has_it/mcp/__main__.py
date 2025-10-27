@@ -98,9 +98,16 @@ async def main() -> None:
                                 "'through-hole', 'SOT-23')"
                             ),
                         },
+                        "offset": {
+                            "type": "integer",
+                            "description": "Number of results to skip for pagination (default: 0)",
+                            "default": 0,
+                        },
                         "limit": {
                             "type": "integer",
-                            "description": "Maximum number of results (default: 20)",
+                            "description": (
+                                "Maximum number of results to return (default: 20, max: 100)"
+                            ),
                             "default": 20,
                         },
                     },
