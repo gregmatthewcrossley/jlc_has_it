@@ -39,7 +39,8 @@ class TestDatabaseManager:
         cursor.execute("""
             CREATE TABLE categories (
                 id INTEGER PRIMARY KEY,
-                category TEXT
+                category TEXT,
+                subcategory TEXT
             )
         """)
         cursor.execute("""
@@ -68,7 +69,7 @@ class TestDatabaseManager:
                 preferred INTEGER
             )
         """)
-        cursor.execute("INSERT INTO categories VALUES (1, 'Test Category')")
+        cursor.execute("INSERT INTO categories VALUES (1, 'Test Category', 'Test Subcategory')")
         cursor.execute("INSERT INTO manufacturers VALUES (1, 'Test Mfr')")
         cursor.execute("""
             INSERT INTO components VALUES

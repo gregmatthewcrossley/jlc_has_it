@@ -117,18 +117,19 @@ class ComponentSearch:
             ]
             query_args: list[Any] = []
 
-        # Category filters (using denormalized columns for speed)
+        # Category filters (using denormalized columns with indexes for speed)
+        # Use exact match (no LIKE wildcards) to allow index usage
         if params.category:
-            query_parts.append("AND category_name LIKE ?")
-            query_args.append(f"%{params.category}%")
+            query_parts.append("AND category_name = ?")
+            query_args.append(params.category)
 
         if params.subcategory:
-            query_parts.append("AND subcategory_name LIKE ?")
-            query_args.append(f"%{params.subcategory}%")
+            query_parts.append("AND subcategory_name = ?")
+            query_args.append(params.subcategory)
 
         if params.manufacturer:
-            query_parts.append("AND manufacturer_name LIKE ?")
-            query_args.append(f"%{params.manufacturer}%")
+            query_parts.append("AND manufacturer_name = ?")
+            query_args.append(params.manufacturer)
 
         # Availability filters
         if params.basic_only:

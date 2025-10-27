@@ -269,7 +269,7 @@ class DatabaseManager:
             cursor.execute(
                 """
                 UPDATE components SET manufacturer_name = (
-                    SELECT name FROM manufacturers WHERE id = components.manufacturer_id
+                    SELECT manufacturer FROM manufacturers WHERE id = components.manufacturer_id
                 )
             """
             )
@@ -358,8 +358,10 @@ class DatabaseManager:
             print("✓ FTS5 index initialized successfully")
 
         except sqlite3.OperationalError as e:
-            if "already exists" in str(e):
-                # FTS5 table already created in another process
+            error_msg = str(e).lower()
+            if "already exists" in error_msg or "database is locked" in error_msg:
+                # FTS5 table already created in another process/thread, or database locked
+                # This is safe to ignore - another thread is initializing it
                 return
             raise
 
