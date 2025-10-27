@@ -64,12 +64,19 @@ Quick reference for all tasks. See individual YAML files for full details.
 | 06-003 | Implement LLM-based query parser (optional) | Medium | 06-001, 06-002 |
 | 06-004 | Integrate query parser with search | Low | 06-002, 05-002 |
 
+## Phase 7: Performance Optimization (2 tasks)
+
+| ID | Title | Complexity | Dependencies |
+|---|---|---|---|
+| 07-001 | Implement FTS5 full-text search indexing | Medium | 03-001 |
+| 07-002 | Implement pagination support | Low | 07-001, 03-001 |
+
 ## Summary
 
-- **Total tasks**: 27 (26 core + 1 optional)
-- **Low complexity**: 6 tasks
-- **Medium complexity**: 18 tasks
-- **High complexity**: 3 tasks
+- **Total tasks**: 29 (28 core + 1 optional)
+- **Low complexity**: 7 tasks
+- **Medium complexity**: 20 tasks
+- **High complexity**: 2 tasks
 
 ## MVP Milestone
 

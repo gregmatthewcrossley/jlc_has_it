@@ -1,0 +1,63 @@
+id: 07-001
+phase: 7
+title: Implement FTS5 full-text search indexing
+description: |
+  Create full-text search (FTS5) virtual table to dramatically improve search performance
+  on the 7M+ component jlcparts database. LIKE pattern searches currently take 15-30 seconds;
+  FTS5 will reduce this to <100ms for typical queries.
+
+  This involves:
+  1. Creating FTS5 virtual table with indexed columns (description, mfr, category)
+  2. Populating FTS5 from existing components table
+  3. Updating search queries to use FTS5 when appropriate
+  4. Maintaining backward compatibility with non-FTS queries
+  5. Testing performance improvements
+
+dependencies:
+  - 03-001
+
+acceptance_criteria:
+  - FTS5 virtual table created for full-text search over description, mfr, category fields
+  - Script or migration to populate FTS5 from existing components table
+  - Updated search module uses FTS5 for LIKE pattern searches
+  - Existing search API remains unchanged (backward compatible)
+  - Performance testing shows >10x improvement for typical searches
+  - Unit tests verify FTS5 search returns same results as LIKE search (but faster)
+  - Integration tests with real database verify <1 second queries
+  - Database size increase documented (~30-40%)
+
+estimated_complexity: medium
+
+status: pending
+
+notes: |
+  PERFORMANCE EXPECTATIONS:
+  - Before FTS5: "100nF capacitor" search = 15-30 seconds
+  - After FTS5: "100nF capacitor" search = <100ms
+
+  DATABASE SIZE:
+  - Current jlcparts: 11GB (uncompressed, contains 7M+ components)
+  - FTS5 index: +30-40% of base database size (~3.3GB additional)
+  - Total after FTS5: ~14GB (be aware of storage requirements)
+  - Note: FTS5 will significantly increase cache size but provide huge speed benefits
+
+  IMPLEMENTATION APPROACH:
+  1. Add FTS5 table creation to database.py
+  2. Create migration script to populate from components
+  3. Add SearchMode enum to QueryParams (FULL_TEXT vs STRUCTURED)
+  4. Update ComponentSearch.search() to use FTS5 when mode is FULL_TEXT
+  5. Benchmark searches before/after with real database
+
+  SQL EXAMPLE:
+    CREATE VIRTUAL TABLE components_fts USING fts5(
+      description,
+      mfr,
+      category,
+      content=components,
+      content_rowid=lcsc
+    );
+
+    SELECT * FROM components
+    JOIN components_fts ON components.lcsc = components_fts.rowid
+    WHERE components_fts MATCH 'description: "100nF" OR mfr: "samsung"'
+    LIMIT 20;

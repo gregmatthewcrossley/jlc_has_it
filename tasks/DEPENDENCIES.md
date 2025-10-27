@@ -45,6 +45,10 @@ Phase 6: Natural Language Processing
 │   ├── 06-002: Pattern-based parser
 │   │   ├── 06-003: LLM parser (optional)
 │   │   └── 06-004: Integrate NLP search (depends on 05-002)
+
+Phase 7: Performance Optimization
+├── 07-001: FTS5 search indexing (depends on 03-001)
+│   └── 07-002: Pagination support (depends on 07-001, 03-001)
 ```
 
 ## Recommended Execution Order
@@ -85,6 +89,10 @@ Phase 6: Natural Language Processing
 25. 06-002 (Pattern parser)
 26. 06-004 (Integrate NLP)
 27. 06-003 (LLM parser) - optional, can be skipped initially
+
+### Sprint 6: Performance Optimization (Phase 7)
+28. 07-001 (FTS5 indexing) - high priority, addresses 15-30s search slowness
+29. 07-002 (Pagination) - pairs with FTS5 for optimal UX
 
 ## Parallelization Opportunities
 

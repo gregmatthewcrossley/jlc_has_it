@@ -1,0 +1,62 @@
+id: 07-002
+phase: 7
+title: Implement pagination for large result sets
+description: |
+  Add pagination support to search queries to handle large result sets gracefully.
+  This allows users to:
+  1. Get initial results quickly (first 10-20 items in <100ms)
+  2. Load more results incrementally as needed
+  3. Avoid overwhelming UI with thousands of results
+  4. Improve user experience with partial results fast delivery
+
+  Pagination works alongside FTS5 to provide excellent performance for both
+  initial search and "show more results" workflows.
+
+dependencies:
+  - 07-001
+  - 03-001
+
+acceptance_criteria:
+  - QueryParams dataclass extended with offset and limit fields
+  - ComponentSearch.search() respects offset/limit for pagination
+  - Default limit=20, max limit=100 (configurable)
+  - MCP tools updated to support pagination parameters
+  - Can request "next page" of results
+  - Total count available (optional, computed if requested)
+  - Unit tests verify pagination correctness (no duplicates, complete coverage)
+  - Integration tests with real database verify pagination works with FTS5
+
+estimated_complexity: low
+
+status: pending
+
+notes: |
+  PAGINATION WORKFLOW:
+  1. User: "Find 100nF capacitors"
+  2. System returns first 20 results (fast, <100ms)
+  3. User: "Show me more" (or automatically load next 20)
+  4. System returns items 21-40 instantly
+  5. User can paginate through all 1000+ results as needed
+
+  MCP API CHANGES:
+  - search_components(query, ..., offset=0, limit=20)
+  - Returns: {results: [...], total_count: 1247, has_more: true}
+
+  SQL PATTERN:
+    SELECT * FROM components
+    WHERE ...
+    ORDER BY basic DESC, stock DESC, price ASC
+    LIMIT 20 OFFSET 0;  -- First page
+    LIMIT 20 OFFSET 20; -- Second page
+    LIMIT 20 OFFSET 40; -- Third page, etc.
+
+  EDGE CASES:
+  - Offset beyond result set (return empty array)
+  - Limit=0 (not allowed, use default)
+  - Limit > 100 (cap at 100)
+  - Concurrent pagination (each cursor independent)
+  - Results change between pagination requests (document as known limitation)
+
+  FUTURE ENHANCEMENT:
+  - Cursor-based pagination (more stable for changing result sets)
+  - Search result caching (same query returns same pagination)
