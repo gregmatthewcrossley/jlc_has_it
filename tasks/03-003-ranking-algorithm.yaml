@@ -16,7 +16,86 @@ acceptance_criteria:
   - Tests verify ranking logic
 estimated_complexity: medium
 status: pending
+estimated_effort: 5 hours
 notes: |
   Use weighted scoring system.
   Make weights configurable.
   Consider: basic(+100), stock(+50), manufacturer reputation(+20), price(-cost).
+
+implementation_plan: |
+  ### Current State
+  - Current ranking: Simple SQL ORDER BY basic DESC, stock DESC, price ASC
+  - Works well but lacks explainability and configurability
+  - Task currently DEFERRED in PROJECT_STATUS.md (not critical)
+
+  ### Implementation Steps
+
+  1. **New Data Models** (add to search.py):
+     - RankingConfig: Configurable weights dataclass
+       - basic_part_bonus: float = 100.0
+       - in_stock_bonus: float = 50.0
+       - manufacturer_reputation: dict[str, float] (Samsung: 20, Murata: 20, etc.)
+       - price_penalty_multiplier: float = 100.0
+       - stock_scaling_factor: float = 0.001
+     - ComponentScore: Score breakdown dataclass
+       - total_score, basic_bonus, stock_bonus, manufacturer_bonus, price_penalty
+       - explain() method for human-readable breakdown
+
+  2. **Scoring Method** (add to ComponentSearch):
+     - calculate_score(component, config) -> ComponentScore
+     - Calculate each scoring factor independently
+     - Combine into total score
+     - Return breakdown for explainability
+
+  3. **Modify search() Method**:
+     - Add optional ranking_config parameter
+     - Add optional include_scores flag
+     - Calculate scores for all components
+     - Sort by total_score (descending)
+     - Make scoring optional for performance
+
+  4. **Tests** (add to test_search.py):
+     - test_ranking_basic_parts_higher()
+     - test_ranking_in_stock_higher()
+     - test_ranking_manufacturer_reputation()
+     - test_ranking_price_matters()
+     - test_ranking_score_breakdown()
+     - test_ranking_configurable_weights()
+     - test_ranking_combined_factors()
+
+  5. **Integration**:
+     - Update MCP tools to use new ranking
+     - Add ranking_config to QueryParams
+     - Maintain backward compatibility (default to SQL ORDER BY)
+
+  ### Benefits
+  - Explainability: Show users why components ranked in certain order
+  - Flexibility: Easy to adjust weights without changing SQL
+  - Extensibility: Easy to add new scoring factors
+  - Testing: Score calculation logic is easily unit-testable
+  - Debugging: Score breakdown helps understand rankings
+
+  ### Tradeoffs
+  Pros:
+  - Much more flexible and explainable
+  - Easy to add new ranking factors
+  - Better for user transparency
+
+  Cons:
+  - Slightly slower (Python sorting vs SQL ORDER BY)
+  - More code to maintain
+  - May need performance optimization for large result sets
+
+  ### Recommendation
+  - Implement scoring system as optional feature
+  - Default to SQL ORDER BY for performance
+  - Use scoring for MCP tools where explainability matters
+  - Add flag to enable/disable per query
+
+  ### Estimated Breakdown
+  - Data models: 30 minutes
+  - Scoring logic: 1 hour
+  - Search integration: 1 hour
+  - Tests: 2 hours
+  - Documentation: 30 minutes
+  - Total: ~5 hours
