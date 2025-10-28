@@ -1,11 +1,37 @@
 """Download and validate KiCad libraries for components."""
 
+import logging
 import subprocess
 import tempfile
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
+
+logger = logging.getLogger(__name__)
+
+
+@dataclass
+class DownloadError:
+    """Represents a download failure with error details."""
+
+    lcsc_id: str
+    error_type: str  # "timeout", "not_found", "validation", "subprocess", "filesystem"
+    message: str
+    details: Optional[str] = None
+
+    def user_friendly_message(self) -> str:
+        """Get a user-friendly error message."""
+        if self.error_type == "timeout":
+            return f"Download for {self.lcsc_id} timed out (took too long)"
+        elif self.error_type == "not_found":
+            return f"Component {self.lcsc_id} not found or unavailable for download"
+        elif self.error_type == "validation":
+            return f"Downloaded files for {self.lcsc_id} are incomplete: {self.message}"
+        elif self.error_type == "subprocess":
+            return f"Download tool error for {self.lcsc_id}: {self.message}"
+        else:
+            return f"Failed to download {self.lcsc_id}: {self.message}"
 
 
 @dataclass
@@ -73,6 +99,8 @@ class LibraryDownloader:
         # Run easyeda2kicad
         symbol_output = output_dir / self.EXPECTED_SYMBOL_FILE
         try:
+            logger.debug(f"Starting download for {lcsc_id}")
+
             result = subprocess.run(
                 [
                     "easyeda2kicad",
@@ -87,15 +115,35 @@ class LibraryDownloader:
 
             # Check exit code
             if result.returncode != 0:
+                logger.error(
+                    f"Download failed for {lcsc_id}: easyeda2kicad exited with code {result.returncode}",
+                    extra={
+                        "lcsc_id": lcsc_id,
+                        "exit_code": result.returncode,
+                        "stderr": result.stderr[:200],
+                    },
+                )
+                # Determine if it's "not found" or other error
+                if "not found" in result.stderr.lower() or result.returncode == 1:
+                    logger.warning(f"Component {lcsc_id} not found on EasyEDA/JLCPCB")
                 return None
 
             # Validate all files exist
             footprint_dir = output_dir / self.EXPECTED_FOOTPRINT_DIR
             model_dir = output_dir / self.EXPECTED_MODEL_DIR
 
-            if not self._validate_files(symbol_output, footprint_dir, model_dir):
+            is_valid, validation_detail = self._validate_files_with_detail(
+                symbol_output, footprint_dir, model_dir
+            )
+
+            if not is_valid:
+                logger.error(
+                    f"Validation failed for {lcsc_id}: {validation_detail}",
+                    extra={"lcsc_id": lcsc_id, "reason": validation_detail},
+                )
                 return None
 
+            logger.info(f"Successfully downloaded {lcsc_id}")
             # Return library info
             return ComponentLibrary(
                 lcsc_id=lcsc_id,
@@ -105,8 +153,10 @@ class LibraryDownloader:
             )
 
         except subprocess.TimeoutExpired:
+            logger.error(f"Download timeout for {lcsc_id} (exceeded {self.TIMEOUT_SECONDS}s)")
             return None
-        except Exception:
+        except Exception as e:
+            logger.error(f"Unexpected error downloading {lcsc_id}: {e}", exc_info=True)
             return None
 
     def download_components_parallel(
@@ -182,27 +232,48 @@ class LibraryDownloader:
         Returns:
             True if all validations pass, False otherwise
         """
+        is_valid, _ = LibraryDownloader._validate_files_with_detail(symbol_path, footprint_dir, model_dir)
+        return is_valid
+
+    @staticmethod
+    def _validate_files_with_detail(
+        symbol_path: Path, footprint_dir: Path, model_dir: Path
+    ) -> tuple[bool, str]:
+        """Validate that all library files exist and are accessible.
+
+        Returns both validation result and a detail string explaining any failure.
+
+        Args:
+            symbol_path: Path to symbol file
+            footprint_dir: Path to footprint directory
+            model_dir: Path to 3D model directory
+
+        Returns:
+            Tuple of (is_valid, detail_string)
+            - is_valid: True if all validations pass
+            - detail_string: Empty string if valid, error reason if invalid
+        """
         # Validation 1: Symbol file exists and non-empty
         if not symbol_path.exists():
-            return False
+            return False, "symbol file missing"
         if symbol_path.stat().st_size == 0:
-            return False
+            return False, "symbol file is empty"
 
         # Validation 2: Footprint directory exists and has files
         if not footprint_dir.exists():
-            return False
+            return False, "footprint directory missing"
         footprint_files = list(footprint_dir.glob("*.kicad_mod"))
         if not footprint_files:
-            return False
+            return False, "no .kicad_mod files found"
 
         # Validation 3: 3D model directory exists and has files
         if not model_dir.exists():
-            return False
+            return False, "3D model directory missing"
         model_files = list(model_dir.glob("*.step")) + list(model_dir.glob("*.wrl"))
         if not model_files:
-            return False
+            return False, "no .step or .wrl 3D model files found"
 
-        return True
+        return True, ""
 
     def cleanup_cache(self, older_than_hours: int = 24) -> int:
         """Remove cached libraries older than specified time.

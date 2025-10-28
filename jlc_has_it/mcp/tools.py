@@ -77,6 +77,25 @@ class JLCTools:
             logger.debug(f"Error checking Ultralibrarian for {manufacturer} {mpn}: {e}")
             return None
 
+    def _get_library_note(self, lib_info: dict, lcsc_id: str) -> str:
+        """Generate a human-readable note about library availability.
+
+        Args:
+            lib_info: Dictionary with 'source' and 'uuid' keys
+            lcsc_id: JLCPCB part number (for logging)
+
+        Returns:
+            Human-readable library availability note
+        """
+        source = lib_info.get("source")
+
+        if source == "ultralibrarian":
+            return "✓ Symbol, footprint, and 3D model available on Ultralibrarian"
+        elif source == "easyeda":
+            return "✓ Symbol, footprint, and 3D model available on EasyEDA/JLCPCB"
+        else:
+            return "⚠ Library availability unknown"
+
     def search_components(
         self,
         query: Optional[str] = None,
@@ -217,6 +236,11 @@ class JLCTools:
             "results": [
                 {
                     "lcsc_id": comp.lcsc,
+                    "library_source": library_sources.get(f"C{comp.lcsc}", {}).get("source"),
+                    "library_note": self._get_library_note(
+                        library_sources.get(f"C{comp.lcsc}", {}),
+                        comp.lcsc
+                    ),
                     "description": comp.description,
                     "manufacturer": comp.manufacturer,
                     "category": comp.category,
@@ -224,7 +248,6 @@ class JLCTools:
                     "price": comp.price,
                     "basic": comp.basic,
                     "mfr_id": comp.mfr,
-                    "library_source": library_sources.get(f"C{comp.lcsc}", {}).get("source"),
                     "ultralibrarian_uuid": library_sources.get(f"C{comp.lcsc}", {}).get("uuid"),
                 }
                 for comp in results
