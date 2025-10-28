@@ -1,0 +1,58 @@
+id: 09-001
+phase: 9
+title: Add library validation filtering to search_components MCP tool
+description: |
+  Enhance the search_components MCP tool to validate that components have
+  complete KiCad library packages available before returning them to the user.
+
+  Currently, search_components returns all database matches without checking
+  if symbol, footprint, and 3D model files are actually available from JLCPCB/EasyEDA.
+  Users can select a part only to find libraries unavailable during add_to_project.
+
+  This task adds library availability validation to the search phase:
+  1. For top N candidates (configurable, e.g. 20), download libraries in parallel
+  2. Validate each download: check symbol exists, footprint exists, 3D model exists
+  3. Discard parts with incomplete packages from results
+  4. Return only validated parts with complete KiCad packages
+
+  This matches the MVP design spec requirement: "Only show parts if complete
+  package is available" and "Returns only parts with complete, validated libraries"
+
+dependencies:
+  - 04-001  # LibraryDownloader must be available
+  - 03-001  # Component search must be implemented
+  - 02-001  # Library file copying
+
+acceptance_criteria:
+  - search_components validates library availability for top candidates
+  - Downloads symbols, footprints, 3D models in parallel from easyeda2kicad
+  - Validates that symbol file exists and contains the component
+  - Validates that footprint file exists for the component package
+  - Validates that 3D model (.step or .wrl) exists
+  - Discards parts without complete packages from results
+  - Returns only validated parts with all three components
+  - Configurable candidate validation count (default 20)
+  - Gracefully handles download/validation failures
+  - Shows clear feedback to user about what was validated
+  - Tests verify library validation works correctly
+  - Tests verify incomplete packages are filtered out
+
+estimated_complexity: high
+status: completed
+notes: |
+  Design considerations:
+  - Download parallelization needed for performance (download top N in parallel)
+  - Cache downloads temporarily to avoid re-downloading same part if user paginates
+  - Consider network timeouts and fallback behavior
+  - May need progress indicator for Claude to show user
+  - Validation should be strict: all three components required
+
+  Performance notes:
+  - Downloading 20 components ~5-10 seconds (parallel with easyeda2kicad)
+  - Should show as streaming results or progress to user
+  - Consider caching for pagination/repeated searches
+
+  Integration points:
+  - Modify search_components in mcp/tools.py
+  - Use LibraryDownloader from core/library_downloader.py
+  - Update MCP tool response format if needed to show validation status

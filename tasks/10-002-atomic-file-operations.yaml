@@ -1,0 +1,78 @@
+id: 10-002
+phase: 10
+title: Implement atomic file operations for library file safety
+description: |
+  Import-LIB-KiCad-Plugin demonstrates critical file safety patterns that
+  should be adopted in the library downloader:
+
+  1. Atomic writes: Save to temp file, validate, then rename (atomic on most filesystems)
+  2. Automatic backups: Create .backup files before modifying
+  3. Rollback on failure: Restore backups if process crashes
+  4. Progressive validation: Validate at each step, not just at the end
+
+  Currently, the library downloader directly writes/copies files without
+  these safety measures. A crash during library download could corrupt
+  user's KiCad library files.
+
+  This task adds robust file handling to prevent corruption.
+
+dependencies:
+  - 04-001  # LibraryDownloader must exist
+  - 10-001  # Preferably after Python API switch
+
+acceptance_criteria:
+  - All library writes use atomic temp→rename pattern
+  - Backups created before modifying existing files
+  - Validation at each step (not just final result)
+  - Rollback mechanism on any error
+  - Modified files tracked for cleanup on crash
+  - Tests verify crash handling doesn't corrupt files
+  - Performance impact minimal (<5%)
+
+estimated_complexity: medium
+status: pending
+notes: |
+  Key patterns from Import-LIB-KiCad-Plugin:
+
+  1. Atomic writes:
+  ```python
+  temp_path = dest_path.with_suffix(".tmp")
+  lib.to_file(str(temp_path))
+
+  # Verify before replacing
+  test_lib = SymbolLib().from_file(str(temp_path))
+  if not test_lib.symbols:
+    raise ValueError("Written library is empty")
+
+  # Atomic replace
+  temp_path.rename(dest_path)
+  ```
+
+  2. Backup tracking:
+  ```python
+  backup_files = {}
+  if existing_file.exists():
+    backup_path = existing_file.with_suffix(".backup")
+    shutil.copy2(existing_file, backup_path)
+    backup_files[existing_file] = backup_path
+
+  # On error: restore
+  for original, backup in backup_files.items():
+    shutil.move(backup, original)
+  ```
+
+  3. Modified objects tracking:
+  ```python
+  modified_objects = ModifiedObject()
+  modified_objects.append(path, Modification.MKDIR)
+  modified_objects.append(file, Modification.EXTRACTED_FILE)
+
+  # For cleanup on crash
+  for path, mod_type in modified_objects.dict.items():
+    if mod_type == Modification.MKDIR:
+      shutil.rmtree(path)
+    elif mod_type == Modification.EXTRACTED_FILE:
+      path.unlink()
+  ```
+
+  Implementation location: jlc_has_it/core/library_downloader.py

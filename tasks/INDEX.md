@@ -72,12 +72,32 @@ Quick reference for all tasks. See individual YAML files for full details.
 | 08-002 | Implement component package filtering | Low | 08-001 |
 | 08-003 | Implement component attribute filtering | High | 08-001 |
 
+## Phase 9: Search Library Validation (1 task) ✅
+
+| ID | Title | Complexity | Dependencies |
+|---|---|---|---|
+| 09-001 | Add library validation filtering to search_components MCP tool | High | 04-001, 03-001, 02-001 | ✅ COMPLETE |
+
+## Phase 10: EasyEDA Python Integration Improvements (3 tasks)
+
+| ID | Title | Complexity | Dependencies |
+|---|---|---|---|
+| 10-001 | Switch EasyEDA integration from subprocess CLI to Python library | Medium | 04-001 |
+| 10-002 | Implement atomic file operations for library file safety | Medium | 04-001, 10-001 |
+| 10-003 | Add footprint format upgrade pipeline using kicad-cli | Medium | 04-001, 10-001 |
+
+## Phase 11: Multi-Source Library Integration (1 task)
+
+| ID | Title | Complexity | Dependencies |
+|---|---|---|---|
+| 11-001 | Research and prototype Ultra Librarian web-scraping capability | High | (none - research phase) |
+
 ## Summary
 
-- **Total tasks**: 21 (added Phase 8 schema optimization and advanced filtering)
+- **Total tasks**: 26 (added Phases 10-11 for EasyEDA improvements and Ultra Librarian research)
 - **Low complexity**: 7 tasks
-- **Medium complexity**: 12 tasks
-- **High complexity**: 2 tasks
+- **Medium complexity**: 15 tasks
+- **High complexity**: 4 tasks
 
 ## MVP Milestone
 

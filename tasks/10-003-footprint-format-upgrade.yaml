@@ -1,0 +1,71 @@
+id: 10-003
+phase: 10
+title: Add footprint format upgrade pipeline using kicad-cli
+description: |
+  Currently, downloaded footprints are used as-is. Import-LIB-KiCad-Plugin
+  shows that footprints should be upgraded to the latest KiCad format
+  using `kicad-cli fp upgrade` before validation/use.
+
+  This ensures:
+  - Compatibility with latest KiCad versions (8.0+)
+  - Consistent format across all sources
+  - Avoids format compatibility issues
+  - Detects malformed footprint files early
+
+  The upgrade process:
+  1. Extract footprint to temporary location
+  2. Run `kicad-cli fp upgrade` to modernize format
+  3. Validate upgraded footprint
+  4. Extract footprint name from upgraded file
+  5. Update 3D model references
+  6. Save to destination
+
+dependencies:
+  - 04-001  # LibraryDownloader must exist
+  - 10-001  # Preferably after Python API switch
+
+acceptance_criteria:
+  - All downloaded footprints are upgraded via kicad-cli
+  - Upgrade failures are caught and reported
+  - Footprint names are extracted from upgraded files
+  - 3D model references are updated after upgrade
+  - Format compatibility verified before returning
+  - Graceful fallback if kicad-cli unavailable
+  - Tests verify upgrade process works correctly
+
+estimated_complexity: medium
+status: pending
+notes: |
+  Implementation pattern from Import-LIB-KiCad-Plugin:
+
+  ```python
+  def upgrade_footprint(footprint_path: Path) -> bool:
+    # Create temporary .pretty directory
+    temp_pretty = temp_dir / "temp.pretty"
+    temp_pretty.mkdir()
+
+    # Copy footprint to .pretty structure
+    pretty_footprint = temp_pretty / footprint_path.name
+    shutil.copy2(footprint_path, pretty_footprint)
+
+    # Upgrade in-place
+    result = cli.upgrade_footprint_lib(
+      pretty_folder=str(temp_pretty),
+      force=True
+    )
+
+    if result.success:
+      # Use upgraded file
+      return temp_pretty / footprint_path.name
+    else:
+      logger.warning(f"Footprint upgrade failed: {result.message}")
+      return None
+  ```
+
+  Uses:
+  - kicad-cli from KiCadSettingsPaths or system
+  - FootprintModelParser to extract footprint names
+  - Temporary directories for staging
+  - Atomic replacement after upgrade
+
+  Implementation location: jlc_has_it/core/library_downloader.py

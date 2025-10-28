@@ -1,0 +1,58 @@
+id: 10-001
+phase: 10
+title: Switch EasyEDA integration from subprocess CLI to Python library
+description: |
+  Currently, the library downloader calls easyeda2kicad as a subprocess CLI tool.
+  The Import-LIB-KiCad-Plugin demonstrates a better approach: importing easyeda2kicad
+  as a Python library for direct API access.
+
+  Benefits of library approach:
+  - No subprocess overhead (faster)
+  - Better error handling and exception propagation
+  - Access to intermediate data structures
+  - More control over the import process
+  - Easier testing and mocking
+
+  This task involves refactoring LibraryDownloader to use the Python API directly
+  instead of subprocess calls.
+
+dependencies:
+  - 04-001  # LibraryDownloader must exist
+
+acceptance_criteria:
+  - easyeda2kicad imported as Python library (not subprocess)
+  - Direct API calls to EasyedaApi, EasyedaSymbolImporter, etc.
+  - All existing functionality preserved
+  - Performance improves (no subprocess overhead)
+  - Error messages are clearer (direct exceptions)
+  - Tests pass with new implementation
+  - Backward compatible with existing cache structure
+
+estimated_complexity: medium
+status: pending
+notes: |
+  Implementation guide from Import-LIB-KiCad-Plugin:
+
+  # Instead of:
+  result = subprocess.run(["easyeda2kicad", "--full", f"--lcsc_id={lcsc_id}"])
+
+  # Use:
+  from easyeda2kicad.easyeda.easyeda_api import EasyedaApi
+  from easyeda2kicad.easyeda.easyeda_importer import EasyedaSymbolImporter
+
+  api = EasyedaApi()
+  cad_data = api.get_cad_data_of_component(lcsc_id=lcsc_id)
+
+  symbol_importer = EasyedaSymbolImporter(cad_data)
+  symbol = symbol_importer.get_symbol()
+
+  See: plugins/impart_easyeda.py in Import-LIB-KiCad-Plugin for full example
+
+  Key classes to use:
+  - EasyedaApi: Fetch component data
+  - EasyedaSymbolImporter: Convert to KiCad symbol
+  - EasyedaFootprintImporter: Convert to KiCad footprint
+  - Easyeda3dModelImporter: Fetch 3D models
+  - ExporterSymbolKicad: Export to .kicad_sym
+  - ExporterFootprintKicad: Export to .kicad_mod
+  - Exporter3dModelKicad: Export models to .step/.wrl

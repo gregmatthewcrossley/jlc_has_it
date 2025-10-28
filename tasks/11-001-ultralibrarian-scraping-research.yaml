@@ -1,0 +1,125 @@
+id: 11-001
+phase: 11
+title: Research and prototype Ultra Librarian web-scraping capability
+description: |
+  Ultra Librarian (https://app.ultralibrarian.com/) is a major component
+  library aggregator with symbols, footprints, and 3D models for millions
+  of parts. Unlike EasyEDA, they don't appear to have a public programmatic API.
+
+  This task is to research whether we can programmatically retrieve component
+  libraries from Ultra Librarian via web-scraping, automated downloads, or
+  reverse-engineering their API.
+
+  Goals:
+  1. Determine if programmatic access is feasible
+  2. Document Ultra Librarian's web architecture and APIs
+  3. Prototype a scraper/API client if possible
+  4. Evaluate legal/ethical implications
+  5. Compare effort vs. benefit vs. alternatives
+
+  If successful, this would significantly expand library coverage beyond EasyEDA.
+
+dependencies: []
+
+acceptance_criteria:
+  - Research document completed with findings
+  - Architecture of Ultra Librarian.com mapped (APIs, endpoints, auth)
+  - Browser automation approach (Playwright/Selenium) evaluated
+  - Reverse-engineering API approach evaluated
+  - Direct contact email drafted
+  - Legal/ethical assessment documented
+  - Comparison of viable approaches (no paid APIs)
+  - Recommendation for next phase provided
+  - Code/docs saved for future reference
+
+estimated_complexity: high
+status: completed
+notes: |
+  RESEARCH COMPLETED - Key Findings:
+
+  1. Search Approach (WORKS - Public)
+  ===================================
+  ✓ Part search without authentication works
+  ✓ UUID extraction from search results: ~0.2 seconds
+  ✓ Example: "Bourns Electronics" "SF-0603F300-2" → UUID 44b282e2-2a18-11ee-9288-0ae0a3b49db5
+
+  2. Export API (REQUIRES AUTHENTICATION)
+  ======================================
+  ✗ Export endpoint requires OAuth 2.0 OIDC login
+  ✗ Redirects to: https://sso.ultralibrarian.com/connect/authorize
+  ✗ Cannot export without valid session
+
+  Export endpoints identified:
+  - POST /Export/QueueExport (requires auth)
+  - GET /Export/CheckQueue?queueToken= (requires auth)
+  - GET /Export/Download?queueToken= (requires auth)
+
+  Export format codes found:
+  - KiCad v6+: 42
+  - KiCad v5: 24
+  - 3D Model (STEP): 21
+
+  3. Feasibility Assessment
+  =========================
+  APPROACH: Browser automation (Playwright/Selenium)
+  - Search: ~0.2-0.5s (fast - no auth needed)
+  - Login: ~2-3s (per session, can reuse)
+  - Export request: ~1-2s
+  - Queue poll: ~5-10s (typical)
+  - Download: ~2-5s
+  - TOTAL per part: ~10-20s (acceptable for real-time search)
+
+  BLOCKERS:
+  - Must handle OAuth OIDC flow (requires automation or credentials)
+  - Terms of Service likely prohibit automation
+  - Rate limiting unknown
+  - IP banning risk if too aggressive
+
+  4. Viable Implementation Paths
+  ==============================
+
+  PATH A: Direct Contact (RECOMMENDED FIRST)
+  - Email info@ultralibrarian.com
+  - Request official API or programmatic access
+  - Effort: 15 minutes + 1-2 weeks response time
+  - Risk: None
+  - Success rate: Unknown (10-20%?)
+
+  PATH B: Browser Automation (FALLBACK)
+  - Use Playwright to automate login + export
+  - Must cache session across requests
+  - Batch requests to minimize login cycles
+  - Effort: 1-2 weeks implementation
+  - Risk: ToS violation, account suspension
+  - Success rate: High (will work technically, but risky)
+
+  PATH C: Manual Download Workflow
+  - Users search on Ultra Librarian UI manually
+  - Download ZIP file
+  - Plugin imports it (like Import-LIB-KiCad-Plugin)
+  - Effort: 0 (already works)
+  - Risk: None
+  - Friction: User must manually click 3-4 times per part
+
+  5. Recommended Next Step
+  ========================
+  1. Send professional email to Ultra Librarian requesting API access
+  2. Emphasize mutual benefit (traffic + attribution)
+  3. Mention open-source KiCad integration use case
+  4. CC yourself to follow up in 2 weeks
+  5. If no response → evaluate browser automation risk/benefit
+  6. If rejection → focus on other sources (SnapEDA, Samacsys, manual workflow)
+
+  6. Research Artifacts
+  =====================
+  - ultralibrarian_scraper_prototype.py - Prototype implementation (search + export)
+  - /tmp/claude/ultralibrarian-primary-research.md - Initial technical analysis
+  - /tmp/claude/ultralibrarian-research-final.md - Free approach recommendations
+  - /tmp/claude/ultralibrarian-scraping-research.md - Detailed feasibility matrix
+
+  7. Legal/Ethical Status
+  =======================
+  - Search: Public, no ToS violation ✓
+  - Browser automation: Gray area, likely violates ToS ⚠️
+  - Direct contact: Legal, could lead to partnership ✓
+  - Manual workflow: 100% legal and supported ✓
