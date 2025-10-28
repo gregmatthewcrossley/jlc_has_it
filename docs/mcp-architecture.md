@@ -444,19 +444,6 @@ async def call_tool(name: str, arguments: dict):
 - Indexed on common fields (category, basic, stock)
 - JSON extraction for attributes
 
-## Future Enhancements
-
-**Phase 2:**
-- Add `compare_components` tool with detailed comparison tables
-- Add `get_datasheet` tool to open component datasheets
-- Cache library downloads to speed up repeat searches
-- Add user preferences for ranking
-
-**Phase 3:**
-- Direct KiCad integration (no manual refresh)
-- Real-time stock monitoring
-- Price tracking and alerts
-
 ## Summary
 
 **Local MCP server architecture:**

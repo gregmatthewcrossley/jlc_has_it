@@ -82,56 +82,6 @@ def download_from_easyeda(lcsc_id: str, output_dir: str) -> Optional[ComponentLi
 
 ## Fallback Sources
 
-### SnapEDA (SnapMagic Search)
-
-**Status**: ⚠️ API ACCESS REQUIRES REQUEST
-
-**Website**: https://www.snapeda.com
-**API Information**: https://www.snapeda.com/get-api/
-
-**Access Methods**:
-- **API**: Available in free and premium tiers, requires requesting access
-- **KiCad Plugin**: Available for KiCad 5.1.10, limited support for KiCad 6+
-- **Desktop App**: Supports KiCad v6+
-- **Manual Download**: Web interface for manual downloads
-
-**Content**:
-- ✅ Symbols
-- ✅ Footprints
-- ✅ 3D Models
-- ✅ Supports KiCad format
-- ✅ 2+ million components
-
-**API Details**:
-- HTTP-based library access
-- JSON responses for component queries
-- Can search by manufacturer part number or keywords
-- Rate limits unknown (requires requesting access)
-- Free and premium tiers available
-
-**Challenges**:
-- ❌ API access not publicly documented
-- ❌ Requires contacting SnapEDA to get API credentials
-- ❌ Unknown rate limits and terms of use
-- ❌ May require approval process for API access
-
-**Integration Strategy**:
-If we can get API access, integration would look like:
-```python
-# Hypothetical - requires API key
-def search_snapeda(manufacturer_pn: str, api_key: str) -> Optional[ComponentInfo]:
-    response = requests.get(
-        f"https://api.snapeda.com/v1/search",
-        params={"mpn": manufacturer_pn},
-        headers={"Authorization": f"Bearer {api_key}"}
-    )
-    # Parse response and download files
-```
-
-**Recommendation**:
-- Phase 1: Skip SnapEDA integration
-- Phase 2+: Request API access if easyeda2kicad coverage is insufficient
-
 ### Ultra Librarian
 
 **Status**: ❌ NO PUBLIC API
@@ -159,54 +109,6 @@ def search_snapeda(manufacturer_pn: str, api_key: str) -> Optional[ComponentInfo
 **Recommendation**:
 - Not suitable for automated fallback
 - Requires manual intervention or web scraping (not recommended)
-
-### Component Search Engine (SamacSys)
-
-**Status**: ⚠️ PLUGIN AVAILABLE, API UNCLEAR
-
-**Website**: https://componentsearchengine.com
-**KiCad Loader**: https://componentsearchengine.com/library/kicad
-
-**Access Methods**:
-- **KiCad EDA Loader**: Direct integration plugin for KiCad
-- **Web Interface**: Manual downloads
-- **API**: Unclear if public API exists
-
-**Content**:
-- ✅ Symbols
-- ✅ Footprints
-- ✅ 3D Models
-- ✅ Direct KiCad integration via loader
-- ✅ Supports 24+ CAD systems
-
-**Challenges**:
-- ❓ Unknown if public API exists for programmatic access
-- ❓ KiCad loader may be GUI-only (needs investigation)
-- ❓ Terms of use for automated access unclear
-
-**Recommendation**:
-- Investigate if KiCad loader can be used programmatically
-- May be suitable as fallback if loader supports CLI/automation
-
-### Ciiva Electronic Component REST API
-
-**Status**: ⚠️ EXISTS BUT UNVERIFIED
-
-**SourceForge**: https://sourceforge.net/projects/electroniccomponentapi/
-
-**Access Methods**:
-- REST API for programmatic access
-- Ciiva Cloud Database
-
-**Challenges**:
-- ❓ Unknown coverage for KiCad formats
-- ❓ Unknown if still actively maintained
-- ❓ Quality and completeness of data unknown
-- ❓ Terms of use and rate limits unknown
-
-**Recommendation**:
-- Low priority for investigation
-- Only consider if other sources prove insufficient
 
 ## User Workflow
 
@@ -331,10 +233,7 @@ Based on our research and testing:
 | Source | Components | API | KiCad Support | 3D Models | Verified |
 |--------|-----------|-----|---------------|-----------|----------|
 | **JLCPCB/EasyEDA** | Millions | ✅ Free | ✅ Native | ✅ Yes | ✅ Tested |
-| **SnapEDA** | 2M+ | ⚠️ Request | ✅ Native | ✅ Yes | ❌ Not tested |
 | **Ultra Librarian** | 14M+ | ❌ None | ✅ Export | ✅ Yes | ❌ No API |
-| **Component Search Engine** | Unknown | ❓ Unknown | ✅ Plugin | ✅ Yes | ❌ Not tested |
-| **Ciiva API** | Unknown | ⚠️ Exists | ❓ Unknown | ❓ Unknown | ❌ Not tested |
 
 ## Recommendations
 
@@ -345,12 +244,6 @@ Based on our research and testing:
 - ✅ Complete packages (symbol + footprint + 3D model)
 - ✅ Direct JLCPCB integration (matches our database source)
 - ✅ No rate limits or API restrictions
-
-### For Phase 2+ (Future)
-If coverage proves insufficient:
-1. **Request SnapEDA API access** (most promising fallback)
-2. **Investigate Component Search Engine automation**
-3. **Consider community-contributed libraries**
 
 ### Critical Requirement
 **Always validate complete packages**:
@@ -380,14 +273,3 @@ def validate_component_library(lib: ComponentLibrary) -> bool:
 - Source: JLCPCB/EasyEDA component database
 - License: JLCPCB terms of use apply
 - Attribution: Include LCSC part number in component metadata
-
-### SnapEDA (if used)
-- License: SnapEDA terms of use
-- Attribution: Required per their terms
-
-## Next Steps
-
-1. ✅ Document easyeda2kicad as primary source
-2. ✅ Update task acceptance criteria to reflect findings
-3. ⏭️ Implement easyeda2kicad integration in Phase 1
-4. ⏭️ Defer fallback source investigation to Phase 2+
