@@ -28,7 +28,7 @@ class JLCTools:
         category: Optional[str] = None,
         subcategory: Optional[str] = None,
         manufacturer: Optional[str] = None,
-        basic_only: bool = True,
+        basic_only: bool = False,
         in_stock_only: bool = True,
         max_price: Optional[float] = None,
         package: Optional[str] = None,
@@ -36,15 +36,22 @@ class JLCTools:
         attribute_ranges: Optional[dict[str, dict[str, Any]]] = None,
         offset: int = 0,
         limit: int = 20,
+        validate_libraries: bool = True,
+        validation_candidates: int = 20,
     ) -> dict[str, Any]:
         """Search for components matching criteria with pagination support.
+
+        By default, validates that components have complete KiCad libraries
+        (symbol, footprint, and 3D model) available from JLCPCB/EasyEDA.
 
         Args:
             query: Free-text search in description
             category: Component category (e.g., "Capacitors", "Resistors")
             subcategory: Subcategory filter
             manufacturer: Manufacturer name filter
-            basic_only: Only return Basic parts (not Extended)
+            basic_only: Only return Basic parts (not Extended). Default False to include
+                       specialty parts like resettable fuses (which are Extended-only).
+                       Results are sorted with Basic parts first regardless.
             in_stock_only: Only return in-stock components
             max_price: Maximum unit price
             package: Package type (e.g., "0603", "0805")
@@ -52,13 +59,17 @@ class JLCTools:
             attribute_ranges: Range attribute matching (e.g., {"Voltage": {"min": "10V", "max": "100V"}})
             offset: Number of results to skip (for pagination)
             limit: Maximum number of results to return (max 100, default 20)
+            validate_libraries: If True, validate that components have complete KiCad
+                              libraries (symbol, footprint, 3D model) available
+            validation_candidates: Number of top candidates to validate (default 20)
 
         Returns:
             Dictionary with:
-            - results: List of components
+            - results: List of components (filtered to only validated ones if validate_libraries=True)
             - offset: Current offset
             - limit: Results per page
             - has_more: Whether more results are available
+            - library_validation_status: Status info about validation (if validate_libraries=True)
         """
         conn = self.db_manager.get_connection()
         search_engine = ComponentSearch(conn)
@@ -80,6 +91,35 @@ class JLCTools:
 
         results = search_engine.search(params)
 
+        # Validate libraries for top candidates if requested
+        validated_lcsc_ids = set()
+        validation_status = None
+
+        if validate_libraries and results:
+            # Get top N candidates for validation
+            candidates = results[: min(len(results), validation_candidates)]
+            candidate_lcsc_ids = [f"C{comp.lcsc}" for comp in candidates]
+
+            # Download and validate libraries in parallel
+            validated_libs = self.downloader.get_validated_libraries(
+                candidate_lcsc_ids, max_workers=10
+            )
+
+            validated_lcsc_ids = set(validated_libs.keys())
+            failed_count = len(candidate_lcsc_ids) - len(validated_lcsc_ids)
+
+            validation_status = {
+                "total_candidates": len(candidate_lcsc_ids),
+                "validated": len(validated_lcsc_ids),
+                "failed": failed_count,
+                "validation_method": "parallel_download_and_validate",
+            }
+
+            # Filter results to only include validated components
+            results = [
+                comp for comp in results if f"C{comp.lcsc}" in validated_lcsc_ids
+            ]
+
         return {
             "results": [
                 {
@@ -97,6 +137,7 @@ class JLCTools:
             "offset": params.offset,
             "limit": params.limit,
             "has_more": len(results) >= params.limit,
+            "library_validation_status": validation_status,
         }
 
     def get_component_details(self, lcsc_id: str) -> Optional[dict[str, Any]]:

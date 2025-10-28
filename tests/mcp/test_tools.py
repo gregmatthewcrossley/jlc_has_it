@@ -434,3 +434,118 @@ class TestToolIntegration:
         if refined_response["results"]:
             details = tools.get_component_details(lcsc_id=refined_response["results"][0]["lcsc_id"])
             assert details is not None
+
+
+class TestSearchComponentsLibraryValidation:
+    """Test library validation feature in search_components MCP tool."""
+
+    @pytest.fixture
+    def tools(self):
+        """Initialize MCP tools with real database."""
+        db = DatabaseManager()
+        db.update_if_needed()
+        return JLCTools(db)
+
+    def test_search_with_library_validation_enabled(self, tools):
+        """Search with validate_libraries=True returns validation status."""
+        response = tools.search_components(
+            category="Capacitors",
+            limit=10,
+            validate_libraries=True,
+        )
+
+        # Should have library validation status in response
+        assert "library_validation_status" in response
+        if response["library_validation_status"] is not None:
+            status = response["library_validation_status"]
+            assert "total_candidates" in status
+            assert "validated" in status
+            assert "failed" in status
+            assert "validation_method" in status
+            # Validated should be less than or equal to total
+            assert status["validated"] <= status["total_candidates"]
+
+    def test_search_with_library_validation_disabled(self, tools):
+        """Search with validate_libraries=False skips validation."""
+        response = tools.search_components(
+            category="Capacitors",
+            limit=10,
+            validate_libraries=False,
+        )
+
+        # Should return None for validation status
+        assert response["library_validation_status"] is None
+
+    def test_validated_results_are_subset_of_candidates(self, tools):
+        """Validated results should be subset of found candidates."""
+        response = tools.search_components(
+            category="Capacitors",
+            limit=20,
+            validate_libraries=True,
+            validation_candidates=20,
+        )
+
+        if response["library_validation_status"] is not None:
+            status = response["library_validation_status"]
+            # Results should not exceed validated count
+            assert len(response["results"]) <= status["validated"]
+
+    def test_validation_filters_out_incomplete_packages(self, tools):
+        """Search results contain only components with complete libraries."""
+        # Note: This test assumes some components don't have complete libraries
+        response = tools.search_components(
+            category="Capacitors",
+            limit=20,
+            validate_libraries=True,
+        )
+
+        # If validation filtered anything, results < candidates
+        if response["library_validation_status"] is not None:
+            status = response["library_validation_status"]
+            if status["failed"] > 0:
+                # Some components were filtered out
+                assert len(response["results"]) < status["total_candidates"]
+
+    def test_validation_candidates_parameter_respected(self, tools):
+        """Validation only checks specified number of candidates."""
+        response = tools.search_components(
+            category="Capacitors",
+            limit=50,
+            validate_libraries=True,
+            validation_candidates=5,
+        )
+
+        if response["library_validation_status"] is not None:
+            status = response["library_validation_status"]
+            # Should validate at most validation_candidates
+            assert status["total_candidates"] <= 5
+
+    def test_search_with_validation_and_filters(self, tools):
+        """Library validation works together with other filters."""
+        response = tools.search_components(
+            category="Capacitors",
+            manufacturer="Samsung",
+            basic_only=True,
+            max_price=0.1,
+            limit=10,
+            validate_libraries=True,
+        )
+
+        assert isinstance(response["results"], list)
+        # Results should pass all filters
+        for result in response["results"]:
+            assert "Samsung" in result["manufacturer"] or result["manufacturer"] is None
+            assert result["basic"] is True
+            assert result["price"] <= 0.1
+
+    def test_no_results_before_validation_returns_empty_status(self, tools):
+        """Search with no matches returns empty results and None status."""
+        response = tools.search_components(
+            query="ZZZZZ_NONEXISTENT",
+            limit=10,
+            validate_libraries=True,
+        )
+
+        assert len(response["results"]) == 0
+        # No validation happens if no results
+        assert response["library_validation_status"] is None
