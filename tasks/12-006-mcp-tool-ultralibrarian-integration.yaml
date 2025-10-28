@@ -1,0 +1,49 @@
+id: 12-006
+phase: 12
+title: Integrate Ultralibrarian into search_components MCP tool
+description: |
+  Integrate Ultralibrarian as a library source in the search_components MCP tool.
+
+  When a component is found via the prototype's search functionality:
+  1. Check if part has complete KiCad library (symbol + footprint + 3D model)
+  2. Offer to user: "This part available on Ultralibrarian. Open browser to download?"
+  3. If user confirms:
+     a. Call open_ultralibrarian_part() to open browser
+     b. Call wait_for_ultralibrarian_download() to monitor downloads
+     c. Call extract_to_project() to integrate into KiCad project
+     d. Report success/failure to user
+
+dependencies:
+  - 12-001
+  - 12-002
+  - 12-003
+  - 12-004
+  - 12-005
+
+acceptance_criteria:
+  - search_components tool updated to check Ultralibrarian availability
+  - Results include "Ultralibrarian library available: Yes/No"
+  - When user selects "download from Ultralibrarian", workflow executes:
+    - Browser opens with clear instructions
+    - Tool waits for download (with timeout)
+    - Files extracted to project library
+    - Success/failure message returned
+  - Error handling: graceful degradation if any step fails
+  - MCP tool responses are conversational and helpful
+  - Updated docstrings and parameter documentation
+
+estimated_complexity: moderate
+status: pending
+notes: |
+  Implementation flow:
+  1. Call existing search_part() from prototype to get UUID
+  2. Add Ultralibrarian availability to search results
+  3. Create new MPC tool option: "download_from_ultralibrarian"
+  4. Or update existing add_to_project tool to support Ultralibrarian source
+  5. Orchestrate the workflow: browser → wait → extract
+  6. Provide clear feedback at each step
+
+  Consider future enhancements:
+  - Batch download multiple parts (queue them)
+  - Cache search results to avoid re-querying
+  - Remember user preferences (always download, always skip, etc.)

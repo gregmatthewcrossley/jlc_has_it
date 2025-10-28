@@ -1,0 +1,38 @@
+id: 12-001
+phase: 12
+title: Create Ultralibrarian downloads folder detector and validator
+description: |
+  Create a new module `ultralibrarian_detector.py` that detects and validates
+  Ultralibrarian download folders in the user's Downloads directory.
+
+  The browser auto-unzips Ultralibrarian exports, creating a folder with the
+  structure: ul_<MPN>/KiCADv6/footprints.pretty/
+
+  This module should:
+  - Find newly created `ul_*` folders in platform-specific Downloads directory
+  - Validate the expected folder structure exists
+  - Locate and identify symbol (.kicad_sym), footprint (.kicad_mod), and 3D model (.step) files
+  - Return structured data about found files for downstream processing
+
+dependencies: []
+
+acceptance_criteria:
+  - Module `jlc_has_it/core/ultralibrarian_detector.py` created
+  - Function `get_downloads_directory()` works on macOS, Windows, Linux
+  - Function `find_ultralibrarian_folders(max_age_seconds=300)` detects `ul_*` folders
+  - Function `validate_folder_structure(folder_path)` checks for KiCADv6/footprints.pretty/
+  - Function `extract_component_files(folder_path)` returns dict with symbol_path, footprints_list, model_path
+  - Handles missing/incomplete folders gracefully (returns None or empty dict)
+  - Basic logging for debugging
+  - Code follows project style (type hints, docstrings)
+
+estimated_complexity: simple
+status: pending
+notes: |
+  Key implementation details:
+  - Use pathlib.Path for cross-platform compatibility
+  - Get downloads dir: Path.home() / "Downloads"
+  - Filter for folders starting with "ul_"
+  - Check for file existence before returning paths
+  - Use os.stat() to get folder creation time for max_age filtering
+  - Symbol file may have timestamp in name (e.g., 2025-10-28_14-26-29.kicad_sym)

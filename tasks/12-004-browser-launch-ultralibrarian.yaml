@@ -1,0 +1,38 @@
+id: 12-004
+phase: 12
+title: Implement browser launch for Ultralibrarian part export
+description: |
+  Create a function that opens the user's default browser to the Ultralibrarian
+  part details page, with clear instructions for exporting and downloading.
+
+  This function should:
+  - Take the Ultralibrarian part UUID (from search) as input
+  - Open browser to https://app.ultralibrarian.com/details/<UUID>
+  - Log clear step-by-step instructions for user
+  - Return immediately (don't wait for download)
+
+dependencies: []
+
+acceptance_criteria:
+  - Function `open_ultralibrarian_part(uuid: str, mpn: str) -> bool` created
+  - Uses Python's built-in `webbrowser` module
+  - Constructs correct URL: https://app.ultralibrarian.com/details/{uuid}
+  - Opens browser and returns True on success
+  - Prints clear instructions:
+    1. Click "Export" button on the part page
+    2. Select "KiCad v6+" format
+    3. Select "3D Model (STEP)" format
+    4. Wait for download button
+    5. Click to download
+  - Includes note about auto-unzipping behavior
+  - Logs part information (MPN, UUID) for reference
+  - Handles errors gracefully (no default browser, etc.)
+
+estimated_complexity: simple
+status: pending
+notes: |
+  Implementation notes:
+  - Use webbrowser.open(url) - handles macOS, Windows, Linux
+  - Instructions can be logged to console
+  - Could also return instructions as string for MCP tool to format
+  - UUID validation recommended (basic format check)

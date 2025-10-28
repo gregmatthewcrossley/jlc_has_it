@@ -1,0 +1,48 @@
+id: 12-008
+phase: 12
+title: Add unit tests for symbol renaming and library extraction (12-002, 12-003)
+description: |
+  Create comprehensive unit tests for renaming (12-002) and extraction (12-003) functions.
+
+  Tests should cover:
+  - Symbol file renaming (timestamp → MPN)
+  - File movement/copying to project library
+  - Directory creation
+  - Library table updates
+  - Error handling (missing files, permission denied, existing files)
+  - Cleanup of source folders
+
+dependencies:
+  - 12-002
+  - 12-003
+
+acceptance_criteria:
+  - Test file `tests/core/test_ultralibrarian_extraction.py` created
+  - At least 15 unit tests covering:
+    - rename_symbol_file() with valid/invalid inputs
+    - rename_symbol_file() with special characters in MPN
+    - extract_to_project() with complete folder structure
+    - extract_to_project() with missing files
+    - extract_to_project() creates directories as needed
+    - extract_to_project() copies all footprint variants
+    - extract_to_project() handles existing files
+    - Library table updates (sym-lib-table, fp-lib-table)
+    - Error handling and logging
+    - Cleanup behavior
+  - All tests pass
+  - Tests use temporary directories (pytest.tmp_path)
+  - Tests create mock library structures
+  - Code coverage > 80% for extraction and renaming
+  - Tests follow project conventions
+
+estimated_complexity: moderate
+status: pending
+notes: |
+  Testing approach:
+  - Use pytest fixtures for mock Ultralibrarian folder structures
+  - Use pytest.tmp_path for temporary project directories
+  - Create dummy .kicad_sym, .kicad_mod, .step files for testing
+  - Mock file operations if needed for error testing
+  - Test realistic scenarios (multiple footprint variants, library table parsing)
+  - Verify library table format after updates
+  - Test cleanup behavior (with/without errors)

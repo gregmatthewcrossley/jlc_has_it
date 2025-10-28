@@ -1,0 +1,40 @@
+id: 12-007
+phase: 12
+title: Add unit tests for Ultralibrarian detector and validator (12-001)
+description: |
+  Create comprehensive unit tests for the detector module (12-001).
+
+  Tests should cover:
+  - Directory detection (finding ul_* folders)
+  - Folder structure validation (valid/invalid structures)
+  - File discovery (symbol, footprint, 3D model files)
+  - Edge cases (missing files, nested folders, special characters)
+  - Cross-platform path handling
+
+dependencies:
+  - 12-001
+
+acceptance_criteria:
+  - Test file `tests/core/test_ultralibrarian_detector.py` created
+  - At least 12 unit tests covering:
+    - get_downloads_directory() on all platforms
+    - find_ultralibrarian_folders() with mock folders
+    - validate_folder_structure() with valid/invalid structures
+    - extract_component_files() with complete/incomplete folders
+    - Timeout behavior (max_age filtering)
+    - Error handling (missing folders, no permissions, etc.)
+  - All tests pass
+  - Tests use fixtures for mock folder structures
+  - Code coverage > 80% for detector module
+  - Tests follow project conventions (pytest, mocking)
+
+estimated_complexity: moderate
+status: pending
+notes: |
+  Testing approach:
+  - Use pytest fixtures to create temporary folders with expected structure
+  - Mock pathlib and os.stat if needed for cross-platform testing
+  - Use pytest.tmp_path for temporary directories
+  - Test both complete and incomplete Ultralibrarian folders
+  - Test with typical part numbers (simple and complex)
+  - No real Downloads directory access needed

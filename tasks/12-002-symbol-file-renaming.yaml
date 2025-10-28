@@ -1,0 +1,36 @@
+id: 12-002
+phase: 12
+title: Implement symbol file renaming (timestamp → MPN-based)
+description: |
+  Ultralibrarian generates symbol files with timestamp-based names like
+  "2025-10-28_14-26-29.kicad_sym". This task creates a utility to rename
+  them to MPN-based names (e.g., "SF-0603F300-2.kicad_sym") for better
+  readability in KiCad.
+
+  The renaming should:
+  - Parse the MPN from the parent folder name (ul_<MPN>/)
+  - Validate the symbol file exists and is readable
+  - Safely rename the file (handle file-exists errors)
+  - Verify the renamed file is valid and readable
+
+dependencies:
+  - 12-001
+
+acceptance_criteria:
+  - Function `rename_symbol_file(symbol_path: Path, mpn: str) -> Path` created
+  - Validates file exists before attempting rename
+  - Handles file-already-exists errors gracefully
+  - Returns Path to renamed file
+  - Raises informative exceptions on failure
+  - Works with special characters in MPN (slashes, etc. - may need sanitizing)
+  - Follows project code style (type hints, docstrings)
+
+estimated_complexity: simple
+status: pending
+notes: |
+  Implementation notes:
+  - Use pathlib.Path.rename() for the file operation
+  - May need to sanitize MPN for filesystem (e.g., "/" → "_")
+  - Consider keeping original name as backup or safety measure
+  - Add logging for debugging
+  - Test with typical JLCPCB part numbers

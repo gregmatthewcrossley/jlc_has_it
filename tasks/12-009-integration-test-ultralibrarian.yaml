@@ -1,0 +1,59 @@
+id: 12-009
+phase: 12
+title: Add end-to-end integration test for Ultralibrarian workflow
+description: |
+  Create an integration test that simulates the complete user workflow:
+  1. Search for a part (using prototype)
+  2. Detect Ultralibrarian availability
+  3. Open browser (mock)
+  4. Simulate user download (create mock download folder)
+  5. Wait for download detection
+  6. Extract to project library
+  7. Verify final state
+
+  This test ties together all components (12-001 through 12-005) in a realistic scenario.
+
+dependencies:
+  - 12-001
+  - 12-002
+  - 12-003
+  - 12-004
+  - 12-005
+  - 12-007
+  - 12-008
+
+acceptance_criteria:
+  - Test file `tests/integration/test_ultralibrarian_workflow.py` created
+  - At least 3 integration tests covering:
+    - Complete happy-path workflow (search → browser → download → extract)
+    - User cancellation/timeout during download
+    - Multiple parts in sequence
+  - Tests mock:
+    - Browser opening
+    - Downloads directory
+    - User download simulation
+    - KiCad project structure
+  - All tests pass
+  - Tests are realistic and represent actual user experience
+  - Clear test documentation
+  - Timeout values appropriate for testing
+
+estimated_complexity: moderate
+status: pending
+notes: |
+  Testing approach:
+  - Use monkeypatch to mock webbrowser.open()
+  - Create mock Downloads directory structure
+  - Use pytest fixtures for mock KiCad projects
+  - Simulate download by creating expected folder structure
+  - Verify extracted files end up in correct project locations
+  - Verify library tables are updated correctly
+  - Test timeout and cancellation paths
+
+  Example workflow:
+  1. Create temp KiCad project with libraries/
+  2. Mock search returning a part UUID
+  3. Mock browser opening
+  4. Simulate download: create ul_<MPN>/ folder in mock Downloads
+  5. Run workflow, verify extraction
+  6. Verify final KiCad project state

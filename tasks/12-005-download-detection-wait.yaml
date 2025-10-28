@@ -1,0 +1,40 @@
+id: 12-005
+phase: 12
+title: Implement download detection and wait logic
+description: |
+  Create a function that monitors the user's Downloads directory for the
+  Ultralibrarian folder and waits for the download to complete.
+
+  This function should:
+  - Poll the Downloads directory for the expected `ul_<MPN>/` folder
+  - Wait until folder structure is complete and stable
+  - Provide progress feedback to user
+  - Handle timeout (user cancels or takes too long)
+  - Allow user to skip waiting and manually confirm
+
+dependencies:
+  - 12-001
+
+acceptance_criteria:
+  - Function `wait_for_ultralibrarian_download(mpn: str, timeout_seconds=300) -> Path | None` created
+  - Polls Downloads directory every 1-2 seconds
+  - Detects `ul_<MPN>/` folder appearance
+  - Validates folder structure using 12-001 detector
+  - Waits for file stability (no changes for 2+ seconds)
+  - Returns Path to folder on success, None on timeout
+  - Logs progress: "Waiting for download...", "Detected folder...", "Ready!" etc.
+  - Timeout after 5 minutes with user-friendly message
+  - Handles case where user manually cancels or closes browser
+  - Could offer CLI option to skip waiting (user presses key to continue)
+
+estimated_complexity: moderate
+status: pending
+notes: |
+  Implementation notes:
+  - Use time.time() for timeout tracking
+  - Use Path.glob() to find matching folders
+  - File stability: check if folder contents unchanged after 2 seconds
+  - Could use watchdog library for cleaner monitoring (optional enhancement)
+  - For now, simple polling is fine and has no dependencies
+  - Clear user messaging is important: "Still waiting for download...", "Timeout - please try again"
+  - Consider offering "Already downloaded?" prompt after initial wait period

@@ -1,0 +1,43 @@
+id: 12-003
+phase: 12
+title: Implement library extraction to KiCad project
+description: |
+  Create a function to extract Ultralibrarian component files (symbols, footprints,
+  3D models) from the downloads folder into a KiCad project's library directory.
+
+  This function should:
+  - Take the Ultralibrarian folder and target KiCad project directory as inputs
+  - Move/copy symbol file to project's `libraries/` directory
+  - Move/copy footprints to project's `libraries/footprints.pretty/` directory
+  - Move/copy 3D model to project's `libraries/3d_models/` directory
+  - Create directories if they don't exist
+  - Update library tables (sym-lib-table, fp-lib-table) if needed
+  - Clean up the original Ultralibrarian folder after successful extraction
+
+dependencies:
+  - 12-001
+  - 12-002
+
+acceptance_criteria:
+  - Function `extract_to_project(ul_folder: Path, project_dir: Path, mpn: str) -> bool` created
+  - Creates library subdirectories if missing
+  - Copies symbol file to libraries/ (with renamed filename from task 12-002)
+  - Copies all .kicad_mod files to libraries/footprints.pretty/
+  - Copies .step file to libraries/3d_models/
+  - Updates sym-lib-table if symbol is new
+  - Updates fp-lib-table if footprints are new
+  - Returns True on success, False on failure
+  - Logs all operations for debugging
+  - Handles errors gracefully (missing files, permission denied, etc.)
+
+estimated_complexity: moderate
+status: pending
+notes: |
+  Implementation notes:
+  - Use shutil.copy2() to preserve file metadata
+  - Check if symbol already in project library (avoid duplicates)
+  - Multiple .kicad_mod files should all be copied (e.g., -M, -L variants)
+  - Update library tables using existing project_integration functions if available
+  - Consider backing up library files before modifying them
+  - Use relative paths in library tables for portability
+  - May want to keep Ultralibrarian folder as reference until user confirms success
