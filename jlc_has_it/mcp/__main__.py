@@ -178,6 +178,51 @@ async def main() -> None:
                     "required": ["lcsc_ids"],
                 },
             ),
+            Tool(
+                name="add_from_ultralibrarian",
+                description=(
+                    "Add a component to a user's KiCad project from Ultralibrarian. "
+                    "Use this when search results show a part is available on Ultralibrarian. "
+                    "This opens the user's browser to manually download and export the files, "
+                    "then automatically detects the download and integrates it into the project. "
+                    "The user will then need to refresh their KiCad libraries."
+                ),
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "manufacturer": {
+                            "type": "string",
+                            "description": (
+                                "Component manufacturer name "
+                                "(e.g., 'Littelfuse', 'Bourns Electronics')"
+                            ),
+                        },
+                        "mpn": {
+                            "type": "string",
+                            "description": (
+                                "Manufacturer part number "
+                                "(e.g., '0501010.WR1', 'SF-0603F300-2')"
+                            ),
+                        },
+                        "project_path": {
+                            "type": "string",
+                            "description": (
+                                "Path to KiCad project directory "
+                                "(auto-detected if not provided)"
+                            ),
+                        },
+                        "timeout_seconds": {
+                            "type": "integer",
+                            "description": (
+                                "Maximum time to wait for download in seconds "
+                                "(default: 300 = 5 minutes)"
+                            ),
+                            "default": 300,
+                        },
+                    },
+                    "required": ["manufacturer", "mpn"],
+                },
+            ),
         ]
 
     @server.call_tool()
@@ -192,6 +237,8 @@ async def main() -> None:
                 result = tools.add_to_project(**arguments)
             elif name == "compare_components":
                 result = tools.compare_components(**arguments)
+            elif name == "add_from_ultralibrarian":
+                result = tools.add_from_ultralibrarian(**arguments)
             else:
                 return [
                     TextContent(
