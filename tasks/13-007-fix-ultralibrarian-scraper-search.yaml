@@ -1,0 +1,71 @@
+id: 13-007
+phase: 13
+title: Fix Ultralibrarian scraper to return correct part UUIDs
+description: |
+  The Ultralibrarian scraper's search_part() method is returning incorrect UUIDs.
+  When searching for a part by manufacturer and MPN, it should return the UUID
+  for that exact part, but instead it's returning UUIDs for different/wrong parts.
+
+  Example failure:
+  - Search: manufacturer="Littelfuse", mpn="0501010.WR1"
+  - Returns: UUID cb845c60-b803-11ee-8cb3-0ae0a3b49db5 (WRONG part)
+  - Expected: UUID c69a241b-106d-11e9-ab3a-0a3560a4cccc (0501010-WR from Littelfuse-Inc)
+
+  Issues identified:
+  1. Manufacturer name format mismatch: "Littelfuse" vs "Littelfuse-Inc"
+  2. MPN format mismatch: "0501010.WR1" vs "0501010-WR"
+  3. Scraper may not be doing exact match or may return first result instead of best match
+
+  This causes the wrong Ultralibrarian page to be opened in the browser.
+
+dependencies:
+  - 13-005
+
+acceptance_criteria:
+  - Scraper correctly identifies Littelfuse 0501010.WR1 component
+  - Returns correct UUID for the part
+  - search_part() returns None if no match found (not wrong part)
+  - Handles manufacturer name variations (Littelfuse, Littelfuse-Inc)
+  - Handles MPN format variations (0501010.WR1, 0501010-WR)
+  - Test with multiple known parts to verify accuracy
+  - Document what transformations are needed for manufacturer/MPN
+
+estimated_complexity: medium
+status: pending
+notes: |
+  Implementation location:
+  - ultralibrarian_scraper_prototype.py::UltraLibrarianScraper.search_part()
+
+  Key issues to investigate:
+  1. How does Ultralibrarian web interface actually search? (exact match, partial match, fuzzy?)
+  2. Does manufacturer need to be "Littelfuse Inc" or "Littelfuse-Inc" on their site?
+  3. Does MPN need special formatting (dots to dashes, etc)?
+  4. Is the scraper doing a simple text search or using their API?
+
+  Testing approach:
+  - Create test cases for known working Ultralibrarian URLs
+  - Verify UUID matches for those known parts
+  - Test various manufacturer/MPN format combinations
+  - Ensure "not found" returns None rather than wrong part
+
+  Critical insight from user testing:
+  When searching for "0501010.WR1", Ultralibrarian finds it but shows
+  "No Exact Match Found. Here are similar parts:" with alternatives like
+  0501010.WR, 0501010.WRS, 0501012.WR, etc.
+
+  The scraper is returning UUIDs for these "similar" parts instead of None,
+  sending users to wrong Ultralibrarian pages.
+
+  Solution: Validate UUID before returning it
+  1. Search for the part and get candidate UUID
+  2. Fetch that UUID's page to verify it's the exact part
+  3. Check if page shows "No Exact Match Found" or product mismatch
+  4. Return None if it's only an approximate match (not exact)
+  5. Only return UUID if validated as exact match
+
+  Implementation:
+  - Add _validate_uuid_is_exact_match(uuid) method
+  - Check page for "No Exact Match Found" message
+  - Verify product details match the search terms
+  - Return None for approximate/similar matches
+  - This ensures graceful fallback to EasyEDA

@@ -49,10 +49,66 @@ class UltraLibrarianScraper:
                          'AppleWebKit/537.36'
         })
 
+    def _validate_uuid_is_exact_match(self, uuid: str, manufacturer: str, mpn: str) -> bool:
+        """
+        Validate that a UUID actually corresponds to the exact part we're looking for.
+
+        Checks if the page shows "No Exact Match Found" or if product details don't match.
+        Returns False if it's only an approximate/similar match.
+
+        Args:
+            uuid: The PartUniqueId to validate
+            manufacturer: Expected manufacturer name
+            mpn: Expected manufacturer part number
+
+        Returns:
+            True if this is an exact match, False if it's approximate/wrong
+        """
+        try:
+            url = urljoin(self.BASE_URL, f"/details/{uuid}")
+            response = self.session.get(url, timeout=10)
+
+            if response.status_code != 200:
+                logger.debug(f"Failed to fetch details page for {uuid}: status {response.status_code}")
+                return False
+
+            # Check for "No Exact Match Found" message
+            if "No Exact Match Found" in response.text:
+                logger.warning(f"UUID {uuid} shows 'No Exact Match Found' - this is an approximate match")
+                return False
+
+            # Check if page contains "similar part" or "alternative" language
+            if "similar part" in response.text.lower() or "alternative" in response.text.lower():
+                logger.warning(f"UUID {uuid} is marked as similar/alternative - not exact match")
+                return False
+
+            # Try to extract and verify manufacturer and MPN from the page
+            # Look for MPN in the page - should match our search term
+            # (case-insensitive, but should be present)
+            mpn_normalized = mpn.lower().replace(".", "-").replace("_", "-")
+            page_text_lower = response.text.lower()
+
+            # Check if the MPN (or close variant) appears in the page
+            if mpn_normalized not in page_text_lower and mpn.lower() not in page_text_lower:
+                logger.warning(f"UUID {uuid}: MPN '{mpn}' not found in page - might be wrong part")
+                # This is not necessarily a failure, could be formatting issue
+                # But be conservative and return False
+                return False
+
+            logger.debug(f"UUID {uuid} validated as exact match for {manufacturer} {mpn}")
+            return True
+
+        except Exception as e:
+            logger.error(f"Validation failed for UUID {uuid}: {e}")
+            return False
+
     def search_part(self, manufacturer: str, mpn: str) -> Optional[str]:
         """
         Search for a part using manufacturer and MPN.
-        Returns the PartUniqueId (UUID) if found, None otherwise.
+        Returns the PartUniqueId (UUID) if found AND validated as exact match, None otherwise.
+
+        IMPORTANT: Only returns UUID if it's confirmed to be an exact match.
+        If page shows "No Exact Match Found" or similar/approximate matches, returns None.
 
         Example: search_part("Bourns Electronics", "SF-0603F300-2")
         """
@@ -82,15 +138,22 @@ class UltraLibrarianScraper:
                     matches = re.findall(uuid_pattern, response.text)
 
                     if matches:
-                        elapsed = time.time() - start_time
-                        logger.info(f"Found UUID: {matches[0]} ({elapsed:.2f}s)")
-                        return matches[0]
+                        # Validate each match to ensure it's an exact match
+                        for candidate_uuid in matches:
+                            if self._validate_uuid_is_exact_match(candidate_uuid, manufacturer, mpn):
+                                elapsed = time.time() - start_time
+                                logger.info(f"Found exact match UUID: {candidate_uuid} ({elapsed:.2f}s)")
+                                return candidate_uuid
+
+                        # If we found UUIDs but none validate as exact matches
+                        logger.debug(f"Found {len(matches)} UUID(s) but none are exact matches")
+
             except Exception as e:
                 logger.debug(f"Search query '{query}' failed: {e}")
                 continue
 
         elapsed = time.time() - start_time
-        logger.warning(f"No results found for {manufacturer} {mpn} ({elapsed:.2f}s)")
+        logger.warning(f"No exact match found for {manufacturer} {mpn} ({elapsed:.2f}s)")
         return None
 
     def request_export(self, part_uuid: str, formats: list[int] = None) -> Optional[str]:
