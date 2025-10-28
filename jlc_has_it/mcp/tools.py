@@ -1,5 +1,6 @@
 """MCP tool definitions for JLC Has It component search and integration."""
 
+import logging
 import shutil
 from pathlib import Path
 from typing import Any, Optional
@@ -8,6 +9,11 @@ from jlc_has_it.core.database import DatabaseManager
 from jlc_has_it.core.kicad.project import ProjectConfig
 from jlc_has_it.core.library_downloader import LibraryDownloader
 from jlc_has_it.core.search import ComponentSearch, QueryParams
+from jlc_has_it.core.ultralibrarian_browser import open_ultralibrarian_part
+from jlc_has_it.core.ultralibrarian_waiter import wait_for_ultralibrarian_download
+from jlc_has_it.core.ultralibrarian_extractor import extract_to_project
+
+logger = logging.getLogger(__name__)
 
 
 class JLCTools:
@@ -395,3 +401,162 @@ class JLCTools:
                 )
 
         return {"success": True, "comparison": comparison}
+
+    def add_from_ultralibrarian(
+        self,
+        manufacturer: str,
+        mpn: str,
+        project_path: Optional[str] = None,
+        timeout_seconds: int = 300,
+    ) -> dict[str, Any]:
+        """Add a component to a KiCad project by downloading from Ultralibrarian.
+
+        This is a user-assisted workflow:
+        1. Searches Ultralibrarian for the part
+        2. Opens the browser to the part page with export instructions
+        3. Waits for the user to manually download and export the files
+        4. Extracts the downloaded files to the KiCad project library
+
+        Args:
+            manufacturer: Manufacturer name (e.g., "Bourns Electronics")
+            mpn: Manufacturer part number (e.g., "SF-0603F300-2")
+            project_path: Path to KiCad project directory
+                         (auto-detected if not provided)
+            timeout_seconds: Maximum time to wait for download (default: 300s = 5 min)
+
+        Returns:
+            Dictionary with:
+            - success: True if component was added, False otherwise
+            - error: Error message if success=False
+            - mpn: The MPN that was processed
+            - message: Status message for user
+            - (additional fields on success)
+        """
+        try:
+            # Move the import inside the function to avoid circular dependencies
+            # and to allow the function to work even if Ultralibrarian prototype isn't deployed
+            import sys
+            import importlib.util
+
+            prototype_path = Path(__file__).parent.parent.parent / "ultralibrarian_scraper_prototype.py"
+            if not prototype_path.exists():
+                return {
+                    "success": False,
+                    "error": "Ultralibrarian prototype not found. Cannot search for part.",
+                    "mpn": mpn,
+                }
+
+            # Load the prototype module
+            spec = importlib.util.spec_from_file_location(
+                "ultralibrarian_scraper_prototype",
+                prototype_path,
+            )
+            prototype_module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(prototype_module)
+            scraper = prototype_module.UltraLibrarianScraper()
+
+            # Step 1: Search for the part on Ultralibrarian
+            logger.info(f"Searching Ultralibrarian for {manufacturer} {mpn}")
+            part_uuid = scraper.search_part(manufacturer, mpn)
+
+            if not part_uuid:
+                return {
+                    "success": False,
+                    "error": f"Part not found on Ultralibrarian: {manufacturer} {mpn}",
+                    "mpn": mpn,
+                }
+
+            logger.info(f"Found part UUID: {part_uuid}")
+
+            # Step 2: Detect project
+            if project_path is None:
+                detected = ProjectConfig.find_project_root(Path.cwd())
+                if detected is None:
+                    return {
+                        "success": False,
+                        "error": "No KiCad project found. Please specify project_path.",
+                        "mpn": mpn,
+                    }
+                project_path = str(detected)
+
+            project_dir = Path(project_path)
+
+            # Validate project
+            try:
+                ProjectConfig(project_dir)
+            except ValueError as e:
+                return {
+                    "success": False,
+                    "error": str(e),
+                    "mpn": mpn,
+                }
+
+            # Step 3: Open browser and show instructions
+            logger.info(f"Opening browser for {mpn}")
+            try:
+                open_ultralibrarian_part(part_uuid, mpn)
+            except ValueError as e:
+                return {
+                    "success": False,
+                    "error": f"Failed to open browser: {e}",
+                    "mpn": mpn,
+                }
+
+            # Step 4: Wait for download
+            logger.info(f"Waiting for download (timeout: {timeout_seconds}s)...")
+            ul_folder = wait_for_ultralibrarian_download(
+                mpn,
+                timeout_seconds=timeout_seconds,
+            )
+
+            if ul_folder is None:
+                return {
+                    "success": False,
+                    "error": f"Timeout waiting for download. Please try downloading again.",
+                    "mpn": mpn,
+                }
+
+            logger.info(f"Download detected: {ul_folder}")
+
+            # Step 5: Extract to project
+            logger.info(f"Extracting {mpn} to project...")
+            try:
+                success = extract_to_project(
+                    ul_folder,
+                    project_dir,
+                    mpn,
+                    cleanup=True,
+                )
+            except Exception as e:
+                return {
+                    "success": False,
+                    "error": f"Failed to extract files: {e}",
+                    "mpn": mpn,
+                }
+
+            if not success:
+                return {
+                    "success": False,
+                    "error": "Extraction failed. Check logs for details.",
+                    "mpn": mpn,
+                }
+
+            # Success!
+            return {
+                "success": True,
+                "mpn": mpn,
+                "manufacturer": manufacturer,
+                "project": str(project_dir),
+                "message": (
+                    f"Successfully added {mpn} from Ultralibrarian. "
+                    "Refresh your KiCad libraries to use this component."
+                ),
+            }
+
+        except Exception as e:
+            logger.error(f"Unexpected error in add_from_ultralibrarian: {e}", exc_info=True)
+            return {
+                "success": False,
+                "error": f"Unexpected error: {e}",
+                "mpn": mpn,
+            }
