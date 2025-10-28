@@ -1,0 +1,66 @@
+id: 13-003
+phase: 13
+title: Display library source prominently in search results
+description: |
+  Search results currently include library_source and ultralibrarian_uuid fields
+  but Claude doesn't see them or use them. Make library source information more
+  prominent and actionable.
+
+  Current problems:
+  1. Fields are buried at the end of result objects
+  2. Claude doesn't understand when to use add_from_ultralibrarian vs add_to_project
+  3. No visual indicator (icon/badge) showing which source has the library
+  4. Users can't quickly identify Ultralibrarian-only parts
+
+  Solution:
+  1. Move library_source to top of result fields (after LCSC ID)
+  2. Add library_availability field showing all available sources
+  3. Add library_note field with helpful context (e.g., "Available on Ultralibrarian")
+  4. Consider reordering fields for better readability
+  5. Update documentation to highlight library source information
+
+dependencies: []
+
+acceptance_criteria:
+  - library_source field appears early in results (position 3-4)
+  - library_availability field added (e.g., ["ultralibrarian", "easyeda"])
+  - library_note field added with human-readable text
+  - Search results clearly show: "Symbol, footprint, and 3D model on {source}"
+  - validation_status includes breakdown by source clearly
+  - Results show ultralibrarian_uuid when available (for expert users)
+  - Claude can understand which tool to use based on results
+  - Documentation/examples show how to interpret library source
+
+estimated_complexity: simple
+status: pending
+notes: |
+  File to modify: jlc_has_it/mcp/tools.py::search_components() return structure
+
+  Proposed field order in result:
+  1. lcsc_id
+  2. description
+  3. library_source (ultralibrarian|easyeda|none)
+  4. library_note (human-readable)
+  5. library_availability (array of sources)
+  6. manufacturer
+  7. category
+  8. stock
+  9. price
+  10. basic
+  11. mfr_id
+  12. ultralibrarian_uuid (optional, for experts)
+
+  Example result:
+  {
+    "lcsc_id": "C207003",
+    "description": "150A SMD Ceramic Fuse 10A 32V 1206",
+    "library_source": "ultralibrarian",
+    "library_note": "Symbol, footprint, and 3D model available on Ultralibrarian",
+    "library_availability": ["ultralibrarian", "easyeda"],
+    "ultralibrarian_uuid": "12345678-...",
+    "manufacturer": "Littelfuse",
+    "category": "Fuses",
+    ...
+  }
+
+  This makes it obvious which tool to use and what sources are available.

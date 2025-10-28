@@ -1,0 +1,61 @@
+id: 13-005
+phase: 13
+title: Build complete Ultralibrarian URLs with manufacturer and MPN details
+description: |
+  When opening the Ultralibrarian part page for a user, the generated URL should
+  include manufacturer and part number information to show the correct part details
+  and optionally open the export dialog.
+
+  Current behavior: Only UUID is used in URL
+  ```
+  https://app.ultralibrarian.com/details/44b282e2-2a18-11ee-9288-0ae0a3b49db5
+  ```
+  This loads a blank page if the UUID alone doesn't uniquely identify the part.
+
+  Desired behavior: Build full URL with manufacturer and MPN
+  ```
+  https://app.ultralibrarian.com/details/{uuid}/Littelfuse-Inc/0501010-WR?open=exports&exports=21&exports=42
+  ```
+  Where:
+  - {uuid} = Ultralibrarian part UUID from scraper
+  - Littelfuse-Inc = manufacturer name (URL-encoded, with dashes)
+  - 0501010-WR = manufacturer part number (URL-encoded)
+  - ?open=exports&exports=21&exports=42 = opens export dialog on page load
+
+  This ensures the page loads correctly and can optionally pre-open the export dialog
+  so user just needs to click "download".
+
+dependencies:
+  - 13-001
+
+acceptance_criteria:
+  - add_from_ultralibrarian builds complete URL including manufacturer/MPN
+  - URL format matches Ultralibrarian's expected structure
+  - Manufacturer name is properly URL-encoded
+  - MPN is properly URL-encoded
+  - Optional: includes ?open=exports parameter to pre-open export dialog
+  - URL is logged before opening browser (for debugging)
+  - Test coverage for URL building logic
+  - End-to-end test showing correct URL is opened
+
+estimated_complexity: simple
+status: pending
+notes: |
+  Implementation location:
+  - jlc_has_it/mcp/tools.py::JLCTools.add_from_ultralibrarian()
+
+  URL format reverse-engineered from working Ultralibrarian URLs:
+  https://app.ultralibrarian.com/details/{uuid}/{Manufacturer-Name}/{mpn}?open=exports&exports=21&exports=42
+
+  The exports parameters (21, 42) likely correspond to specific file types:
+  - 21 = symbol/schematic library
+  - 42 = 3D model (STEP)
+  Confirm exact values by testing with actual Ultralibrarian interface.
+
+  Key fix: Pass manufacturer and mpn to add_from_ultralibrarian so full URL can
+  be built. Currently method only receives UUID from scraper.
+
+  Testing:
+  - Test URL encoding for special characters in manufacturer/mpn
+  - Test URL is properly formatted before passing to browser
+  - Test with real Ultralibrarian parts (Littelfuse, Bourns, etc.)

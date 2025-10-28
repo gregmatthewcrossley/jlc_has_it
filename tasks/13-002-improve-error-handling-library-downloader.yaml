@@ -1,0 +1,50 @@
+id: 13-002
+phase: 13
+title: Improve error handling and logging in LibraryDownloader
+description: |
+  The LibraryDownloader currently swallows error details, making it impossible
+  to debug why downloads fail. Add structured error handling and logging to
+  provide better feedback to users and developers.
+
+  Problems to fix:
+  1. LibraryDownloader.download_component() returns None without logging why
+  2. LibraryDownloader.get_validated_libraries() silently fails on errors
+  3. add_to_project() tool shows generic "Failed to download valid library"
+  4. No way to distinguish between network errors, format errors, missing files, etc.
+
+  Solution:
+  1. Add detailed logging to LibraryDownloader with context
+  2. Create structured error responses (dict with error type, message, details)
+  3. Pass error details through to MCP tools
+  4. Update tool methods to return specific error messages
+  5. Log all failures for debugging (file, HTTP, format, validation)
+
+dependencies: []
+
+acceptance_criteria:
+  - LibraryDownloader logs all download attempts with timestamps
+  - Failed downloads logged with specific reason (HTTP error, file missing, format error, etc.)
+  - add_to_project tool returns detailed error message (not just "Failed to download")
+  - add_from_ultralibrarian tool returns detailed error message
+  - Error logs include: component ID, URL, HTTP status, exception message
+  - Validation failures show which files are missing (symbol/footprint/model)
+  - Error responses suitable for display to end users
+  - Debug logs suitable for developer troubleshooting
+
+estimated_complexity: moderate
+status: pending
+notes: |
+  Files to modify:
+  - jlc_has_it/core/library_downloader.py (add detailed logging)
+  - jlc_has_it/mcp/tools.py (capture and return error details)
+
+  Error categories to distinguish:
+  - Network error (HTTP 404, 500, timeout, connection refused)
+  - Format error (invalid ZIP, missing expected files)
+  - Validation error (incomplete package: missing symbol/footprint/model)
+  - File system error (permission denied, disk full)
+  - Timeout (exceeded maximum wait time)
+
+  Example improved error message:
+  "Failed to download {mpn}: HTTP 404 from easyeda2kicad.py
+   (part may not have complete library). Ultralibrarian alternative available."

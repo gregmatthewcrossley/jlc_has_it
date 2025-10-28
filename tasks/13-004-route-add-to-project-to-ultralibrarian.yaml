@@ -1,0 +1,60 @@
+id: 13-004
+phase: 13
+title: Route add_to_project to add_from_ultralibrarian when appropriate
+description: |
+  When a user calls add_to_project for a component that is known to be available
+  only on Ultralibrarian (not on EasyEDA), the tool should either:
+  1. Route the request to add_from_ultralibrarian, or
+  2. Detect the issue and return a helpful error message
+
+  Current behavior: add_to_project always tries the EasyEDA/easyeda2kicad route
+  first, which fails for Ultralibrarian-only components with generic error
+  "Failed to download valid library for {lcsc_id}".
+
+  This creates a bad user experience where:
+  - Claude calls the wrong tool
+  - User gets generic error with no clear next step
+  - User must manually figure out to use add_from_ultralibrarian
+
+  Solution: Track validation results in search to know which source each component
+  is available from, then route appropriately.
+
+dependencies:
+  - 13-001
+  - 13-003
+
+acceptance_criteria:
+  - add_to_project checks if component is known to be Ultralibrarian-only
+  - If Ultralibrarian-only, returns helpful error with manufacturer and MPN
+  - Error message explicitly recommends using add_from_ultralibrarian
+  - Search results include manufacturer and MPN fields (or UUID) for routing
+  - add_to_project prioritizes EasyEDA if component available on both sources
+  - Test coverage for routing logic
+  - End-to-end test showing Claude routes correctly to add_from_ultralibrarian
+
+estimated_complexity: medium
+status: pending
+notes: |
+  Implementation locations:
+  - jlc_has_it/mcp/tools.py::JLCTools.search_components() - store validation source info
+  - jlc_has_it/mcp/tools.py::JLCTools.add_to_project() - add routing logic
+
+  Key insight: Need to preserve manufacturer and MPN in search results so that
+  when user says "add this", Claude has the info needed to call add_from_ultralibrarian.
+
+  Current flow (broken):
+  1. Search returns library_source = "ultralibrarian"
+  2. User says "add C207003"
+  3. Claude calls add_to_project (only has lcsc_id)
+  4. add_to_project tries EasyEDA, fails with generic error
+
+  Desired flow:
+  1. Search returns library_source, manufacturer, mpn
+  2. User says "add C207003"
+  3. Claude knows library_source="ultralibrarian"
+  4. Claude calls add_from_ultralibrarian(manufacturer, mpn)
+  5. Success
+
+  Or acceptable alternative:
+  1. add_to_project detects source="ultralibrarian"
+  2. Returns error saying "use add_from_ultralibrarian instead, here are manufacturer/mpn"

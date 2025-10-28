@@ -1,0 +1,39 @@
+id: 13-001
+phase: 13
+title: Register add_from_ultralibrarian as MCP tool
+description: |
+  Register the `add_from_ultralibrarian()` method as a proper MCP tool so that
+  Claude can call it directly when a user wants to add a component from Ultralibrarian.
+
+  Currently the method exists but is not exposed as an MCP tool. This prevents
+  Claude from using it even when search results show Ultralibrarian as the source.
+
+  Tasks:
+  1. Update mcp/server.py to expose add_from_ultralibrarian as a tool
+  2. Add proper tool definition with name, description, and input schema
+  3. Wire up the tool to JLCTools.add_from_ultralibrarian()
+  4. Update tool documentation to explain when/why to use it vs add_to_project
+  5. Test that Claude can call the tool via MCP
+
+dependencies: []
+
+acceptance_criteria:
+  - add_from_ultralibrarian is registered as an MCP tool
+  - Tool has clear name: "add_from_ultralibrarian"
+  - Tool has description explaining it's for Ultralibrarian downloads
+  - Tool accepts parameters: manufacturer, mpn, project_path (optional), timeout_seconds (optional)
+  - Tool is callable and returns proper success/failure response
+  - MCP server configuration document updated
+  - Tool works end-to-end: search → results show UUID → user calls tool → browser opens
+
+estimated_complexity: simple
+status: pending
+notes: |
+  Implementation location: jlc_has_it/mcp/server.py
+  Related method: jlc_has_it/mcp/tools.py::JLCTools.add_from_ultralibrarian()
+
+  Key fields to expose in tool:
+  - manufacturer: component manufacturer (required)
+  - mpn: manufacturer part number (required)
+  - project_path: path to KiCad project (optional, auto-detect if not provided)
+  - timeout_seconds: max time to wait for download (optional, default 300)

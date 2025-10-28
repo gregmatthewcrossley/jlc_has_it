@@ -28,6 +28,7 @@ class JLCTools:
         self.db_manager = db_manager
         self.downloader = LibraryDownloader()
         self._ultralibrarian_scraper = None  # Lazy-loaded on first use
+        self._library_source_cache = {}  # Cache of lcsc_id -> {"source": ..., "manufacturer": ..., "mpn": ...}
 
     def _get_ultralibrarian_scraper(self):
         """Get or lazily-load the Ultralibrarian scraper.
@@ -168,7 +169,7 @@ class JLCTools:
         results = search_engine.search(params)
 
         # Track library availability by source
-        library_sources = {}  # lcsc_id -> {"source": "ultralibrarian"|"easyeda", "uuid": str}
+        library_sources = {}  # lcsc_id -> {"source": "ultralibrarian"|"easyeda", "uuid": str, "manufacturer": str, "mpn": str}
         validated_lcsc_ids = set()
         validation_status = None
 
@@ -189,6 +190,8 @@ class JLCTools:
                         library_sources[f"C{comp.lcsc}"] = {
                             "source": "ultralibrarian",
                             "uuid": uuid,
+                            "manufacturer": comp.manufacturer,
+                            "mpn": comp.mfr,
                         }
                         logger.debug(f"Found {comp.manufacturer} {comp.mfr} on Ultralibrarian")
                 except Exception as e:
@@ -232,6 +235,10 @@ class JLCTools:
                 comp for comp in results if f"C{comp.lcsc}" in validated_lcsc_ids
             ]
 
+            # Cache library source info for later use by add_to_project
+            for lcsc_id, info in library_sources.items():
+                self._library_source_cache[lcsc_id] = info
+
         return {
             "results": [
                 {
@@ -249,6 +256,8 @@ class JLCTools:
                     "basic": comp.basic,
                     "mfr_id": comp.mfr,
                     "ultralibrarian_uuid": library_sources.get(f"C{comp.lcsc}", {}).get("uuid"),
+                    "ultralibrarian_manufacturer": library_sources.get(f"C{comp.lcsc}", {}).get("manufacturer"),
+                    "ultralibrarian_mpn": library_sources.get(f"C{comp.lcsc}", {}).get("mpn"),
                 }
                 for comp in results
             ],
@@ -295,6 +304,9 @@ class JLCTools:
         Downloads the component library if needed, copies files to project,
         and updates library tables.
 
+        For components available on Ultralibrarian, considers routing to
+        add_from_ultralibrarian if EasyEDA download fails.
+
         Args:
             lcsc_id: JLCPCB part number
             project_path: Path to KiCad project directory
@@ -303,6 +315,15 @@ class JLCTools:
         Returns:
             Success status with paths and messages
         """
+        # Check if component is available on Ultralibrarian only (from cache)
+        lib_key = f"C{lcsc_id}" if not lcsc_id.startswith("C") else lcsc_id
+        lib_info = self._library_source_cache.get(lib_key)
+
+        is_ultralibrarian_only = (
+            lib_info and
+            lib_info.get("source") == "ultralibrarian"
+        )
+
         # Detect project if not specified
         if project_path is None:
             detected = ProjectConfig.find_project_root(Path.cwd())
@@ -324,6 +345,20 @@ class JLCTools:
         # Download library
         library = self.downloader.download_component(lcsc_id)
         if library is None or not library.is_valid():
+            # If it's known to be on Ultralibrarian, provide routing suggestion
+            if is_ultralibrarian_only:
+                return {
+                    "success": False,
+                    "error": (
+                        f"Component {lcsc_id} is available on Ultralibrarian (not EasyEDA). "
+                        f"Use add_from_ultralibrarian instead with: "
+                        f"manufacturer='{lib_info.get('manufacturer')}' mpn='{lib_info.get('mpn')}'"
+                    ),
+                    "suggestion": "add_from_ultralibrarian",
+                    "manufacturer": lib_info.get("manufacturer") if is_ultralibrarian_only else None,
+                    "mpn": lib_info.get("mpn") if is_ultralibrarian_only else None,
+                }
+
             return {
                 "success": False,
                 "error": f"Failed to download valid library for {lcsc_id}",
@@ -606,7 +641,12 @@ class JLCTools:
             # Step 3: Open browser and show instructions
             logger.info(f"Opening browser for {mpn}")
             try:
-                open_ultralibrarian_part(part_uuid, mpn)
+                open_ultralibrarian_part(
+                    part_uuid,
+                    mpn,
+                    manufacturer=manufacturer,
+                    open_exports=True,
+                )
             except ValueError as e:
                 return {
                     "success": False,

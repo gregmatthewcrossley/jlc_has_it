@@ -1,0 +1,73 @@
+id: 13-006
+phase: 13
+title: Add progress feedback and improve timeout UX for add_from_ultralibrarian
+description: |
+  When a user calls add_from_ultralibrarian, the tool waits for files to be
+  downloaded (default: up to 300 seconds / 5 minutes). Currently the user gets
+  no feedback during this wait, causing:
+
+  1. Unclear what's happening or why it's taking so long
+  2. No indication of progress or estimated time remaining
+  3. No clear signal when download completes
+  4. User might kill the process thinking it's hung
+  5. Timeout error is generic with no actionable info
+
+  Solution: Provide clear, frequent feedback during the wait:
+  1. Initial message when starting to wait
+  2. Progress update every 2-5 seconds showing elapsed time
+  3. Clear message when download is detected
+  4. Clear message if timeout occurs
+  5. Cancel instructions (Ctrl+C friendly)
+
+dependencies:
+  - 13-001
+
+acceptance_criteria:
+  - Tool prints clear message: "Waiting for download from Ultralibrarian..."
+  - Tool shows elapsed time every 2-3 seconds: "⏳ Waiting (15s elapsed, timeout in 285s)"
+  - Tool prints "✓ Download detected!" when files are found
+  - Tool prints "Processing files into project..." during integration
+  - Timeout error message is clear: "Timeout waiting for download (waited 300s)"
+  - Progress output goes to stdout (visible to user in real-time)
+  - Poll interval for checking downloads is 2-3 seconds (not too frequent)
+  - Tool respects timeout_seconds parameter correctly
+  - Test coverage for progress output
+  - End-to-end test showing progress messages appear
+
+estimated_complexity: simple
+status: pending
+notes: |
+  Implementation location:
+  - jlc_has_it/mcp/tools.py::JLCTools.add_from_ultralibrarian()
+
+  Current flow:
+  1. Opens browser
+  2. Waits up to 300s for download (no feedback)
+  3. Either returns success or generic error
+
+  New flow:
+  1. Opens browser
+  2. Prints: "⏳ Waiting for files to download from Ultralibrarian..."
+  3. Checks for files every 2 seconds:
+     - Prints progress: "⏳ Waiting (5s elapsed, timeout in 295s)"
+     - When files found, prints: "✓ Download detected!"
+  4. Processes files and prints: "Processing files into project..."
+  5. Returns success
+
+  On timeout:
+  1. Prints: "⏱ Timeout waiting for download (waited 300s)"
+  2. Prints: "Please ensure you exported the files from Ultralibrarian"
+  3. Returns error with actionable advice
+
+  Testing considerations:
+  - Mock the download detection (filesystem checks)
+  - Test progress output appears
+  - Test elapsed time display
+  - Test timeout message
+  - Test with different timeout_seconds values
+  - Verify no progress output in silent mode (if added later)
+
+  Performance consideration:
+  - Current polling every 5 seconds might miss fast downloads
+  - Reduce to 2 second intervals for better responsiveness
+  - Use file modification time to detect when download finishes
