@@ -305,14 +305,14 @@ class TestExtractToProject:
         with pytest.raises(FileNotFoundError):
             extract_to_project(ul_folder, nonexistent_project, "TEST")
 
-    def test_raises_for_invalid_project(self, tmp_path):
-        """Should raise ValueError if project has no .kicad_pro file."""
+    def test_returns_false_for_invalid_project(self, tmp_path):
+        """Should return False if project has no .kicad_pro file."""
         ul_folder = self.create_ul_folder(tmp_path, "TEST")
         project_dir = tmp_path / "invalid_project"
         project_dir.mkdir()  # No .kicad_pro file
 
-        with pytest.raises(ValueError):
-            extract_to_project(ul_folder, project_dir, "TEST")
+        result = extract_to_project(ul_folder, project_dir, "TEST")
+        assert result is False
 
     def test_returns_false_for_invalid_ul_folder(self, tmp_path):
         """Should return False if ul_folder has invalid structure."""
