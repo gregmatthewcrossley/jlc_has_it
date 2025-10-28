@@ -27,6 +27,55 @@ class JLCTools:
         """
         self.db_manager = db_manager
         self.downloader = LibraryDownloader()
+        self._ultralibrarian_scraper = None  # Lazy-loaded on first use
+
+    def _get_ultralibrarian_scraper(self):
+        """Get or lazily-load the Ultralibrarian scraper.
+
+        Returns the scraper instance or None if prototype not available.
+        """
+        if self._ultralibrarian_scraper is not None:
+            return self._ultralibrarian_scraper
+
+        try:
+            import importlib.util
+            prototype_path = Path(__file__).parent.parent.parent / "ultralibrarian_scraper_prototype.py"
+            if not prototype_path.exists():
+                return None
+
+            spec = importlib.util.spec_from_file_location(
+                "ultralibrarian_scraper_prototype",
+                prototype_path,
+            )
+            prototype_module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(prototype_module)
+            self._ultralibrarian_scraper = prototype_module.UltraLibrarianScraper()
+            return self._ultralibrarian_scraper
+        except Exception as e:
+            logger.debug(f"Could not load Ultralibrarian scraper: {e}")
+            return None
+
+    def _check_ultralibrarian_availability(self, manufacturer: str, mpn: str) -> Optional[str]:
+        """Check if a component is available on Ultralibrarian.
+
+        Args:
+            manufacturer: Component manufacturer
+            mpn: Manufacturer part number
+
+        Returns:
+            Ultralibrarian UUID if found and has complete library, None otherwise
+        """
+        try:
+            scraper = self._get_ultralibrarian_scraper()
+            if scraper is None:
+                return None
+
+            # Search for the part
+            uuid = scraper.search_part(manufacturer, mpn)
+            return uuid
+        except Exception as e:
+            logger.debug(f"Error checking Ultralibrarian for {manufacturer} {mpn}: {e}")
+            return None
 
     def search_components(
         self,
@@ -48,7 +97,8 @@ class JLCTools:
         """Search for components matching criteria with pagination support.
 
         By default, validates that components have complete KiCad libraries
-        (symbol, footprint, and 3D model) available from JLCPCB/EasyEDA.
+        available. **Ultralibrarian is checked first** as the primary source,
+        with JLCPCB/EasyEDA as fallback.
 
         Args:
             query: Free-text search in description
@@ -66,12 +116,13 @@ class JLCTools:
             offset: Number of results to skip (for pagination)
             limit: Maximum number of results to return (max 100, default 20)
             validate_libraries: If True, validate that components have complete KiCad
-                              libraries (symbol, footprint, 3D model) available
+                              libraries available (symbol, footprint, 3D model) from
+                              Ultralibrarian or JLCPCB/EasyEDA
             validation_candidates: Number of top candidates to validate (default 20)
 
         Returns:
             Dictionary with:
-            - results: List of components (filtered to only validated ones if validate_libraries=True)
+            - results: List of components with library source info (filtered to validated only if validate_libraries=True)
             - offset: Current offset
             - limit: Results per page
             - has_more: Whether more results are available
@@ -97,28 +148,64 @@ class JLCTools:
 
         results = search_engine.search(params)
 
-        # Validate libraries for top candidates if requested
+        # Track library availability by source
+        library_sources = {}  # lcsc_id -> {"source": "ultralibrarian"|"easyeda", "uuid": str}
         validated_lcsc_ids = set()
         validation_status = None
 
         if validate_libraries and results:
             # Get top N candidates for validation
             candidates = results[: min(len(results), validation_candidates)]
-            candidate_lcsc_ids = [f"C{comp.lcsc}" for comp in candidates]
 
-            # Download and validate libraries in parallel
-            validated_libs = self.downloader.get_validated_libraries(
-                candidate_lcsc_ids, max_workers=10
-            )
+            logger.info(f"Validating libraries for {len(candidates)} components")
+            logger.info(f"Checking Ultralibrarian first as primary source...")
 
-            validated_lcsc_ids = set(validated_libs.keys())
-            failed_count = len(candidate_lcsc_ids) - len(validated_lcsc_ids)
+            # Step 1: Check Ultralibrarian for all candidates (primary source)
+            ultralibrarian_available = {}
+            for comp in candidates:
+                try:
+                    uuid = self._check_ultralibrarian_availability(comp.manufacturer, comp.mfr)
+                    if uuid:
+                        ultralibrarian_available[f"C{comp.lcsc}"] = uuid
+                        library_sources[f"C{comp.lcsc}"] = {
+                            "source": "ultralibrarian",
+                            "uuid": uuid,
+                        }
+                        logger.debug(f"Found {comp.manufacturer} {comp.mfr} on Ultralibrarian")
+                except Exception as e:
+                    logger.debug(f"Error checking Ultralibrarian: {e}")
+
+            # Add Ultralibrarian results to validated set
+            validated_lcsc_ids.update(ultralibrarian_available.keys())
+
+            # Step 2: Check EasyEDA for remaining candidates (fallback)
+            remaining_candidates = [
+                f"C{comp.lcsc}" for comp in candidates
+                if f"C{comp.lcsc}" not in validated_lcsc_ids
+            ]
+
+            if remaining_candidates:
+                logger.debug(f"Checking EasyEDA/JLCPCB for {len(remaining_candidates)} remaining components...")
+                validated_libs = self.downloader.get_validated_libraries(
+                    remaining_candidates, max_workers=10
+                )
+
+                for lcsc_id in validated_libs.keys():
+                    library_sources[lcsc_id] = {
+                        "source": "easyeda",
+                        "uuid": None,
+                    }
+                    validated_lcsc_ids.add(lcsc_id)
+
+            failed_count = len([f"C{comp.lcsc}" for comp in candidates]) - len(validated_lcsc_ids)
 
             validation_status = {
-                "total_candidates": len(candidate_lcsc_ids),
+                "total_candidates": len(candidates),
                 "validated": len(validated_lcsc_ids),
+                "ultralibrarian": len(ultralibrarian_available),
+                "easyeda": len(validated_lcsc_ids) - len(ultralibrarian_available),
                 "failed": failed_count,
-                "validation_method": "parallel_download_and_validate",
+                "validation_method": "ultralibrarian_first_then_easyeda",
             }
 
             # Filter results to only include validated components
@@ -137,6 +224,8 @@ class JLCTools:
                     "price": comp.price,
                     "basic": comp.basic,
                     "mfr_id": comp.mfr,
+                    "library_source": library_sources.get(f"C{comp.lcsc}", {}).get("source"),
+                    "ultralibrarian_uuid": library_sources.get(f"C{comp.lcsc}", {}).get("uuid"),
                 }
                 for comp in results
             ],
