@@ -612,12 +612,3 @@ MIT License - See LICENSE file for details
 
 - Component data provided by jlcparts (https://github.com/yaqwsx/jlcparts), Copyright 2024 Jan Mrázek, Licensed under the MIT License
 - Library download functionality uses easyeda2kicad.py (https://github.com/uPesy/easyeda2kicad.py), Licensed under AGPLv3
-
-## Contributing
-
-Contributions welcome! Areas for improvement:
-- Additional search filters (power dissipation, frequency response, etc.)
-- Better ranking algorithm based on user preferences
-- CLI enhancements
-- Documentation improvements
-- Performance optimizations

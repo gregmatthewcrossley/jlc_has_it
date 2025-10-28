@@ -4,28 +4,37 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**JLC Has It** is a tool for hobbyist electronics designers using KiCad 9.0 to quickly find and add JLCPCB components to their projects.
+**JLC Has It** is a tool for hobbyist electronics designers using KiCad 9.0 to quickly find and add parts to their project that are well stocked by JLCPCB and have symbol, footprint, and 3D CAD model files available.
 
 ### Problem Statement
+As a hobbyist electronics designer, I use KiCad to design PCBs. I prefer to have JLCPCB fabricate board for me, as they are relatively inexpensive and have a large stock of components. Because I am designing smaller devices, once I finish my PCB design in KiCad, I need to be able to export a 3D model of the PCB that I can use to design an enclosure around. Millimeters often matter, so it is important that all the components I use have accurate 3D models.
 
-Finding suitable components is time-consuming. Components must meet all these criteria:
-- In stock at JLCPCB (preferably "basic" parts, preferably SMD)
-- Well-known, commonly used, relatively inexpensive
-- Has a complete KiCad library package available from JLCPCB/EasyEDA
-  - Symbol, footprint, and 3D CAD model (STEP format)
-  - Downloaded via easyeda2kicad.py Python tool
-  - Only show parts if complete package is available
+KiCad's standard library does not include symbol, footprint, and 3D CAD models for *every* component that JLCPCB stocks. This means that, for every component I want to use, I need to use a generic model (and verify that it is suitable), or I have to search third-party sites (for example, Ultralibrarian) to download the symbol, footprint, and 3D CAD model files (which I then have to import into a KiCad project library). 
+
+This process is very labour intensive and error prone. 
 
 ### Solution
+This project is my solution: a locally-run MCP server with some tools written in Python that enable an Agent like Claude Code to:
+- search for suitable components using natural language
+- compare components based on their specs, pricing, stock levels and other attributes
+- add a specific component (with symbol, footprint, and 3D model files) to a KiCad project's library
 
-**Local MCP server** providing conversational component search through Claude Code/Desktop:
+#### Suitable components
+A suitable component, in this context, has a complete KiCad library available for download. Specifically:
+- has ample stock at JLCPCB (preferably "basic" components, preferably SMD)
+- is well-known, well documented, commonly used, and relatively inexpensive
+- Has a complete library package available to be downloaded and imported into KiCad, specifically:
+  - a KiCad 9.0 compatible symbol file (a `.kicad_sym` file)
+  - a KiCad 9.0 compatible footprint file (a `.kicad_mod` file)
+  - a 3D model of the component, ideally in STEP format
+
 
 **User Experience:**
 ```
 User: "I need a through-hole capacitor rated for 50V and 220uF"
 
 Claude: [searches via MCP tools]
-        "I found 12 parts with complete KiCad libraries.
+        "I found 12 in-stock parts with complete KiCad libraries available.
          Top options:
          1. C12345 - 220uF 50V Electrolytic | Stock: 5000 | $0.15
          2. C23456 - 220uF 63V Ceramic X7R  | Stock: 3000 | $0.45
@@ -150,8 +159,7 @@ my_project/
   - Downloads symbols, footprints, and 3D models directly from JLCPCB/EasyEDA
   - Downloads run in parallel for top N candidates
   - Only parts with complete packages shown to user
-  - Future phases may add SnapEDA API as fallback source
-- **KiCad Library Format**: Manipulate valid S-expression files
+  - Future phases may add Ultralibrarian as fallback source
 
 ### Key Workflows
 
@@ -196,15 +204,10 @@ my_project/
 
 ## Git Workflow
 
-**Note**: This project uses different git conventions than the global CLAUDE.md (which is Rails-specific).
-
 ### Commit Authorship
-
-**CRITICAL: Always use `--no-gpg-sign` flag. Never sign commits.**
 
 - When Claude makes commits autonomously, use both `--author` and set committer identity:
   - `GIT_COMMITTER_NAME="Claude Code" GIT_COMMITTER_EMAIL="noreply@anthropic.com" git commit --author="Claude Code <noreply@anthropic.com>" --no-gpg-sign`
-  - Or use environment variables for all git commands in the session
 - **DO NOT OMIT `--no-gpg-sign`**: This prevents triggering user's 1Password SSH signing which will block the commit
 - **DO NOT use any -S or --gpg-sign flags**: Always explicitly use `--no-gpg-sign`
 - This provides clear attribution in git history (both author and committer show as Claude)
